@@ -1,0 +1,33 @@
+<svg width="900" height="540" viewBox="0 0 900 540" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="900" height="540" rx="28" fill="#0F172A"/>
+  <rect x="18" y="18" width="864" height="504" rx="22" fill="#F8FAFC"/>
+  <rect x="18" y="18" width="184" height="504" rx="22" fill="#111827"/>
+  <rect x="44" y="50" width="115" height="12" rx="6" fill="#60A5FA"/>
+  <rect x="42" y="94" width="130" height="42" rx="12" fill="#2563EB"/>
+  <rect x="60" y="108" width="86" height="12" rx="6" fill="white"/>
+  <rect x="48" y="160" width="100" height="9" rx="4.5" fill="#64748B"/>
+  <rect x="48" y="192" width="116" height="9" rx="4.5" fill="#64748B"/>
+  <rect x="48" y="224" width="92" height="9" rx="4.5" fill="#64748B"/>
+  <rect x="48" y="256" width="106" height="9" rx="4.5" fill="#64748B"/>
+  <rect x="224" y="44" width="632" height="66" rx="16" fill="white" stroke="#E2E8F0"/>
+  <text x="248" y="73" font-family="Arial" font-size="12" font-weight="700" fill="#2563EB">DASHBOARD DOSEN PA</text>
+  <text x="248" y="95" font-family="Arial" font-size="19" font-weight="700" fill="#0F172A">Monitoring mahasiswa bimbingan</text>
+  <rect x="224" y="128" width="198" height="112" rx="16" fill="#EFF6FF"/>
+  <text x="244" y="157" font-family="Arial" font-size="11" fill="#64748B">MAHASISWA</text>
+  <text x="244" y="199" font-family="Arial" font-size="31" font-weight="700" fill="#0F172A">86</text>
+  <rect x="438" y="128" width="198" height="112" rx="16" fill="#FEF2F2"/>
+  <text x="458" y="157" font-family="Arial" font-size="11" fill="#64748B">RISIKO TINGGI</text>
+  <text x="458" y="199" font-family="Arial" font-size="31" font-weight="700" fill="#DC2626">7</text>
+  <rect x="652" y="128" width="204" height="112" rx="16" fill="#F0FDF4"/>
+  <text x="672" y="157" font-family="Arial" font-size="11" fill="#64748B">RATA-RATA IPK</text>
+  <text x="672" y="199" font-family="Arial" font-size="31" font-weight="700" fill="#0F172A">3.38</text>
+  <rect x="224" y="260" width="632" height="236" rx="16" fill="white" stroke="#E2E8F0"/>
+  <text x="248" y="292" font-family="Arial" font-size="14" font-weight="700" fill="#0F172A">Mahasiswa yang perlu perhatian</text>
+  <rect x="248" y="318" width="584" height="1" fill="#E2E8F0"/>
+  <circle cx="274" cy="352" r="17" fill="#DBEAFE"/><text x="266" y="357" font-family="Arial" font-size="11" font-weight="700" fill="#1D4ED8">AP</text>
+  <text x="305" y="350" font-family="Arial" font-size="13" font-weight="700" fill="#0F172A">Alya Putri</text><text x="305" y="369" font-family="Arial" font-size="11" fill="#64748B">Presensi 68% • IPK 2.48</text>
+  <rect x="746" y="340" width="70" height="24" rx="12" fill="#FEE2E2"/><text x="758" y="356" font-family="Arial" font-size="10" font-weight="700" fill="#B91C1C">TINGGI</text>
+  <circle cx="274" cy="416" r="17" fill="#E0E7FF"/><text x="266" y="421" font-family="Arial" font-size="11" font-weight="700" fill="#4338CA">CR</text>
+  <text x="305" y="414" font-family="Arial" font-size="13" font-weight="700" fill="#0F172A">Citra Lestari</text><text x="305" y="433" font-family="Arial" font-size="11" fill="#64748B">LMS 54% • Tugas 61%</text>
+  <rect x="746" y="404" width="70" height="24" rx="12" fill="#FEF3C7"/><text x="758" y="420" font-family="Arial" font-size="10" font-weight="700" fill="#B45309">SEDANG</text>
+</svg>
