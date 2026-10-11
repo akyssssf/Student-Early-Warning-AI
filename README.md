@@ -1,74 +1,43 @@
-# Student Early Warning AI
+# Backend Student Early Warning AI
 
-Project Front-End Student Early Warning AI berdasarkan SKPL dan kebutuhan praktikum.
+Flask 3 (Blueprint per modul) + SQLAlchemy 2 + Flask-Migrate + JWT + bcrypt + Pydantic, sesuai
+*Dokumen Arsitektur Backend SEW v1.0*. Tahap ini: **FR-01 Login**, **FR-12 Kelola akun**, dan seluruh
+skema database (10 tabel). Modul import/risk/dashboard/catatan/notifikasi/laporan menyusul.
 
-## Role
-1. Dosen PA
-2. Mahasiswa
-
-## Login demo
-Semua akun demo memakai password `123456`. Di halaman login tersedia dropdown **Akun demo** untuk mengisi form otomatis.
-Belum punya akun? Klik **Daftar** di bawah form login (`/register`).
-
-| Role | Email | Dashboard |
-|---|---|---|
-| Mahasiswa (Alya Putri, NIM 2024001) — risiko Rendah | `alya@student.uns.ac.id` | `/dashboard-mahasiswa` |
-| Mahasiswa (Bagas Pratama, NIM 2024002) — risiko Sedang | `bagas@student.uns.ac.id` | `/dashboard-mahasiswa` |
-| Mahasiswa (Citra Lestari, NIM 2024003) — risiko Tinggi | `citra@student.uns.ac.id` | `/dashboard-mahasiswa` |
-| Mahasiswa (Dimas Ramadhan, NIM 2024004) — risiko Rendah | `dimas@student.uns.ac.id` | `/dashboard-mahasiswa` |
-| Mahasiswa (Eka Sari, NIM 2024005) — risiko Sedang | `eka@student.uns.ac.id` | `/dashboard-mahasiswa` |
-| Dosen PA | `dosen@student.uns.ac.id` | `/dashboard` |
-| Kaprodi | `kaprodi@student.uns.ac.id` | `/dashboard-kaprodi` |
-| Admin | `admin@student.uns.ac.id` | `/dashboard-admin` |
-| Orang Tua (pilih mahasiswa di form login) | `orangtua@example.com` | `/dashboard-orangtua` |
-
-## Dashboard Dosen PA
-- Ringkasan mahasiswa
-- Risiko tinggi/sedang/rendah
-- Data mahasiswa
-- Risk Score
-- Filter risiko
-- Catatan tindak lanjut
-- Riwayat intervensi
-
-## Dashboard Mahasiswa
-- Ringkasan akademik
-- IPK
-- Presensi
-- Aktivitas LMS
-- Pengumpulan tugas
-- Peringatan dini
-- Profil saya
-- Status risiko
-- Rekomendasi
-
-## Teknologi
-Next.js App Router, React 19, TypeScript strict, Tailwind CSS v4, CVA, Zod, Zustand, TanStack Query, Middleware, dan mock REST API.
-
-## Jalankan
-```bash
-npm install
-npm run dev
+## Jalankan (Windows)
+```powershell
+cd backend
+python -m venv venv
+venv\Scripts\activate
+pip install -r requirements.txt
+copy .env.example .env
 ```
-Buka http://localhost:3000
+**Database MySQL (XAMPP):** start MySQL, lalu import `database/schema.sql` di phpMyAdmin
+(atau `flask db upgrade`). Tanpa MySQL: di `.env` ganti `DATABASE_URL=sqlite:///sew.db`.
+```powershell
+python seed.py      # 9 akun demo, password 123456
+python run.py       # http://127.0.0.1:5000
+```
 
-## Demo Role Dashboard
+## Endpoint (/api/v1)
+| Method | URL | Akses | Keterangan |
+|---|---|---|---|
+| POST | /auth/login | publik | body `username` (atau email) + `password` -> `access_token`, `refresh_token`, `role`, `user` |
+| POST | /auth/refresh | refresh token | access token baru |
+| POST | /auth/register | publik* | *tambahan: daftar mandiri khusus mahasiswa (`ALLOW_SELF_REGISTER`) |
+| GET/POST | /users | admin | daftar / buat akun semua role |
+| PUT/DELETE | /users/{id} | admin | ubah / nonaktifkan akun |
+| PATCH | /users/mahasiswa/{nim}/dosen-pa | admin | tugaskan Dosen PA |
+| GET | /health | publik | cek ketersediaan |
 
-Project ini sekarang memiliki dashboard multi-role:
+Error: `{"code": "KREDENSIAL_SALAH", "message": "..."}` (Indonesia, kode konsisten - NFR-07).
+Login dibatasi 10 percobaan/menit per IP. Access token 15 menit, refresh token 7 hari (NFR-01).
 
-- **Dosen PA** → `/dashboard`
-- **Mahasiswa** → `/dashboard-mahasiswa`
-- **Administrator** → `/dashboard-admin`
-- **Kaprodi** → `/dashboard-kaprodi`
-- **Orang Tua** → `/dashboard-orangtua`
+## Akun demo
+`admin@` , `kaprodi@` , `dosen@` , `alya@` ... `eka@` + `student.uns.ac.id`, serta `orangtua@example.com` (memantau Alya, NIM 2024001). Password semua `123456`.
 
-Password demo: `123456`
-
-Untuk role Mahasiswa dan Orang Tua, pilih mahasiswa pada form login. Data yang digunakan masih berupa mock data untuk kebutuhan demonstrasi front-end.
-
-> Catatan: role Orang Tua merupakan pengembangan tambahan dari SRS yang ada. SRS versi 1.0 mendefinisikan empat aktor utama: Admin, Dosen PA, Kaprodi, dan Mahasiswa.
-
-
-## Modul 8 — Build Tools Modern
-
-Tugas build-tools dikerjakan sebagai subproject terpisah di `modul-8-vite/` karena aplikasi utama menggunakan Next.js App Router. Subproject tersebut berisi Vite + React + Strict TypeScript + Biome, path alias, manual chunks, HMR demo, CI quality gate, konfigurasi SonarQube, matriks migrasi, dan benchmark PDF.
+## Catatan: beda kecil dari dokumen
+- `/auth/register` tidak ada di dokumen (akun resminya dibuat Admin lewat `POST /users`); dibuat karena halaman Register frontend sudah ada. Matikan dengan `ALLOW_SELF_REGISTER=false`.
+- Tabel `notifikasi` ditambah kolom `dibaca` (untuk `PATCH /notifikasi/{id}/baca`), tidak ada di class diagram.
+- `user.is_active` ditambahkan untuk "DELETE = nonaktifkan".
+- Role `orangtua` ditambahkan: tabel `orang_tua` (id_orang_tua, id_user, nim anak, nama). Akun dibuat Admin lewat `POST /users` dengan `role: orangtua` + `nim` mahasiswa yang dipantau; emailnya boleh non-SSO. Role `staff` di frontend tidak ada di database.

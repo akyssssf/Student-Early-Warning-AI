@@ -1,0 +1,19 @@
+# Sesuai Bagian 10 dokumen arsitektur (versi awal: api + db; nginx & worker menyusul)
+services:
+  api:
+    build: .
+    env_file: .env
+    environment:
+      DATABASE_URL: mysql+pymysql://root:root@db:3306/student_early_warning
+    ports: ["5000:5000"]
+    depends_on: [db]
+    restart: unless-stopped
+  db:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: student_early_warning
+    volumes: [dbdata:/var/lib/mysql]
+    restart: unless-stopped
+volumes:
+  dbdata:
