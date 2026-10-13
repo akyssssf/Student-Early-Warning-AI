@@ -63,6 +63,19 @@ python run.py               # http://127.0.0.1:5000
 ```
 > macOS: port 5000 dipakai AirPlay Receiver. Kalau `http://127.0.0.1:5000/api/v1/health` tidak menjawab `{"status":"ok"}`, jalankan `PORT=5001 python run.py` dan set `BACKEND_URL=http://127.0.0.1:5001` di frontend.
 
+**Windows (PowerShell)**, padanan langkah backend di atas:
+```powershell
+cd backend
+python -m venv venv
+venv\Scripts\activate
+pip install -r requirements.txt
+copy .env.example .env      # isi JWT_SECRET_KEY, APP_ENV=development
+flask --app run.py db upgrade
+python seed.py
+python run.py
+```
+Variabel lingkungan sesaat di PowerShell: `$env:PORT="5001"; python run.py` dan `$env:APP_ENV="testing"; pytest`. Untuk frontend, ganti `cp` dengan `copy`. Docker Desktop (mode WSL2) bisa dipakai untuk `docker compose up --build` di folder `backend`.
+
 **2. Frontend** (terminal kedua, dari root repo):
 ```bash
 npm install

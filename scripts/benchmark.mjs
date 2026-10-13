@@ -27,7 +27,10 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const vite = path.join(root, "modul-8-vite");
 const runs = Number((process.argv.find((a) => a.startsWith("--runs=")) ?? "--runs=5").split("=")[1]);
-const bin = (dir, name) => path.join(dir, "node_modules", ".bin", name);
+const isWin = process.platform === "win32";
+// Di Windows, .bin berisi shim .cmd yang harus dijalankan lewat shell.
+const bin = (dir, name) => path.join(dir, "node_modules", ".bin", isWin ? `${name}.cmd` : name);
+const quote = (p) => (isWin ? `"${p}"` : p);
 
 for (const dir of [root, vite]) {
   if (!existsSync(path.join(dir, "node_modules"))) {
@@ -45,7 +48,7 @@ function timeCommand(cmd, args, cwd, { before } = {}) {
   for (let i = 0; i < runs; i++) {
     before?.();
     const t0 = performance.now();
-    const res = spawnSync(cmd, args, { cwd, stdio: "ignore", env: { ...process.env, CI: "1", NEXT_TELEMETRY_DISABLED: "1" } });
+    const res = spawnSync(quote(cmd), args, { cwd, stdio: "ignore", shell: isWin, env: { ...process.env, CI: "1", NEXT_TELEMETRY_DISABLED: "1" } });
     const dt = performance.now() - t0;
     if (res.status !== 0) throw new Error(`Perintah gagal: ${cmd} ${args.join(" ")} (di ${cwd})`);
     times.push(dt);
@@ -67,8 +70,11 @@ async function waitFor(url, predicate, timeoutMs = 60000) {
 }
 
 function startServer(cmd, args, cwd) {
-  const child = spawn(cmd, args, { cwd, detached: true, stdio: "ignore", env: { ...process.env, NEXT_TELEMETRY_DISABLED: "1", FORCE_COLOR: "0" } });
-  return { stop: async () => { try { process.kill(-child.pid, "SIGTERM"); } catch { /* sudah berhenti */ } await sleep(500); } };
+  const child = spawn(quote(cmd), args, { cwd, detached: !isWin, shell: isWin, stdio: "ignore", env: { ...process.env, NEXT_TELEMETRY_DISABLED: "1", FORCE_COLOR: "0" } });
+  return { stop: async () => { try {
+      if (isWin) spawnSync("taskkill", ["/pid", String(child.pid), "/T", "/F"], { stdio: "ignore" });
+      else process.kill(-child.pid, "SIGTERM");
+    } catch { /* sudah berhenti */ } await sleep(500); } };
 }
 
 async function coldStart({ cmd, args, cwd, url }) {

@@ -7,8 +7,12 @@ on:
 
 jobs:
   web:
-    name: Frontend (Next.js)
-    runs-on: ubuntu-latest
+    name: Frontend (Next.js, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -22,8 +26,12 @@ jobs:
       - run: npm run build
 
   backend:
-    name: Backend (Flask)
-    runs-on: ubuntu-latest
+    name: Backend (Flask, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
     defaults:
       run:
         working-directory: backend
