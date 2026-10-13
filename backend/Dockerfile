@@ -11,4 +11,5 @@ USER appuser
 
 EXPOSE 5000
 ENTRYPOINT ["./docker-entrypoint.sh"]
-CMD ["gunicorn", "-b", "0.0.0.0:5000", "--workers", "2", "run:app"]
+# 1 worker + thread: rate limit memori akurat. Untuk beberapa worker, pakai Redis (RATELIMIT_STORAGE_URI).
+CMD ["gunicorn", "-b", "0.0.0.0:5000", "--workers", "1", "--threads", "4", "run:app"]

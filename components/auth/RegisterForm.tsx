@@ -24,6 +24,7 @@ export default function RegisterForm() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [verificationRequired, setVerificationRequired] = useState(false);
   const redirectTimer = useRef<number | undefined>(undefined);
 
   useEffect(() => () => window.clearTimeout(redirectTimer.current), []);
@@ -40,21 +41,25 @@ export default function RegisterForm() {
     if (password !== confirmation) return setError("Konfirmasi password belum sama.");
 
     setSubmitting(true);
+    let needsVerification = false;
     try {
-      await registerStudent({ name: name.trim(), email: normalized, password, nim: trimmedNim });
+      const created = await registerStudent({ name: name.trim(), email: normalized, password, nim: trimmedNim });
+      needsVerification = created.verification_required === true;
+      setVerificationRequired(needsVerification);
     } catch (e) {
       setSubmitting(false);
       return setError(e instanceof ApiRequestError ? e.message : "Pendaftaran gagal. Coba lagi.");
     }
     setSuccess(true);
-    redirectTimer.current = window.setTimeout(() => router.push(`/login?email=${encodeURIComponent(normalized)}`), 900);
+    // Kalau email harus diverifikasi, tetap di halaman ini supaya pesan "cek email" terbaca.
+    if (!needsVerification) redirectTimer.current = window.setTimeout(() => router.push(`/login?email=${encodeURIComponent(normalized)}`), 900);
   }
 
   return (
     <form onSubmit={submit} className="mx-auto max-w-md">
       <div className="mb-7"><p className="text-sm font-extrabold text-blue-600">Buat akun</p><h2 className="mt-1 text-3xl font-black tracking-tight text-slate-950">Daftar akun SSO</h2><p className="mt-2 text-sm leading-6 text-slate-500">Pendaftaran mandiri khusus mahasiswa dengan email <b>{SSO_DOMAIN}</b>. Akun Dosen PA, Kaprodi, dan Admin dibuat oleh administrator.</p></div>
 
-      {success ? <div role="status" className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-800"><div className="flex items-center gap-2 font-bold"><CheckCircle2 size={19} /> Akun berhasil dibuat.</div><p className="mt-2 leading-6">Kamu akan diarahkan ke halaman login. Akun tersimpan di database backend.</p></div> : <>
+      {success ? <div role="status" className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-800"><div className="flex items-center gap-2 font-bold"><CheckCircle2 size={19} /> Akun berhasil dibuat.</div>{verificationRequired ? <p className="mt-2 leading-6">Kami mengirim tautan verifikasi ke <b>{email.trim().toLowerCase()}</b>. Klik tautan itu (berlaku 24 jam), lalu <Link href="/login" className="font-bold underline">masuk</Link>. Cek juga folder spam.</p> : <p className="mt-2 leading-6">Kamu akan diarahkan ke halaman login.</p>}</div> : <>
         <label htmlFor="register-name" className="mb-2 block text-sm font-bold text-slate-700">Nama lengkap</label>
         <div className="relative mb-4"><UserRound className="absolute left-3 top-3.5 text-slate-400" size={18} /><input id="register-name" value={name} onChange={(e) => setName(e.target.value)} className="w-full rounded-xl border border-slate-200 py-3.5 pl-10 pr-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10" placeholder="Nama lengkap" autoComplete="name" required /></div>
 

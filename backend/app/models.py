@@ -19,6 +19,9 @@ class User(db.Model):
     role = db.Column(db.String(20), nullable=False)
     is_active = db.Column(db.Boolean, nullable=False, default=True)  # DELETE /users = nonaktifkan
     created_at = db.Column(db.DateTime, nullable=False, default=_now)
+    email_verified_at = db.Column(db.DateTime, nullable=True)  # kosong = email belum diverifikasi
+    failed_logins = db.Column(db.Integer, nullable=False, default=0)
+    locked_until = db.Column(db.DateTime, nullable=True)
 
     dosen_pa = db.relationship("DosenPA", back_populates="user", uselist=False)
     mahasiswa = db.relationship("Mahasiswa", back_populates="user", uselist=False)
@@ -47,6 +50,7 @@ class User(db.Model):
             "role": self.role,
             "nim": self.nim,
             "is_active": self.is_active,
+            "email_verified": self.email_verified_at is not None,
         }
 
 
@@ -147,3 +151,11 @@ class Notifikasi(db.Model):
     status_kirim = db.Column(db.String(20), nullable=False, default="pending")
     kanal = db.Column(db.String(20), nullable=False)  # sistem / email
     dibaca = db.Column(db.Boolean, nullable=False, default=False)  # untuk PATCH /notifikasi/{id}/baca
+
+
+class RevokedToken(db.Model):
+    """Daftar jti token yang dicabut (logout). Baris kedaluwarsa dibersihkan saat logout berikutnya."""
+    __tablename__ = "revoked_token"
+    id = db.Column(db.Integer, primary_key=True)
+    jti = db.Column(db.String(64), nullable=False, unique=True, index=True)
+    expires_at = db.Column(db.DateTime, nullable=False)

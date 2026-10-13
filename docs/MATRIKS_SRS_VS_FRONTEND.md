@@ -14,3 +14,4 @@
 | Mahasiswa | Melihat kondisi akademik | `app/dashboard-mahasiswa` |
 | Mahasiswa | Melihat status risiko | `app/dashboard-mahasiswa/risiko` |
 | Mahasiswa | Melihat rekomendasi | `app/dashboard-mahasiswa/rekomendasi` |
+| Tambahan | Verifikasi email, lupa/reset password | `app/verify-email`, `app/forgot-password`, `app/reset-password`, backend `app/auth` |

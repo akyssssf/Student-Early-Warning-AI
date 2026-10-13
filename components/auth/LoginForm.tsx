@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { Eye, EyeOff, Lock, Mail, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { ApiRequestError, login } from "@/lib/authClient";
+import { ApiRequestError, login, resendVerification } from "@/lib/authClient";
 import { DEMO_ACCOUNTS, DEMO_PASSWORD } from "@/lib/demoAccounts";
 import { ROLE_HOME, ROLE_LABELS, isRole, type UserRole } from "@/lib/roles";
 import { SESSION_KEY } from "@/hooks/useSession";
@@ -31,6 +31,8 @@ export default function LoginForm({ initialEmail = "" }: { initialEmail?: string
   const [error, setError] = useState("");
   const [demoEmail, setDemoEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const [info, setInfo] = useState("");
 
   // Datang dari halaman daftar: akun yang baru dibuat selalu Mahasiswa.
   useEffect(() => {
@@ -58,6 +60,8 @@ export default function LoginForm({ initialEmail = "" }: { initialEmail?: string
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
+    setInfo("");
+    setNeedsVerification(false);
     const normalizedEmail = email.trim().toLowerCase();
     if (!normalizedEmail || password.length < 6) return setError("Email dan password wajib diisi. Password minimal 6 karakter.");
     if (selectedRole?.requiresSso && !normalizedEmail.endsWith(SSO_DOMAIN)) return setError(`Gunakan email SSO dengan format nama${SSO_DOMAIN}.`);
@@ -71,8 +75,18 @@ export default function LoginForm({ initialEmail = "" }: { initialEmail?: string
       router.refresh();
     } catch (e) {
       const message = e instanceof ApiRequestError ? e.message : "Login gagal. Coba lagi.";
+      setNeedsVerification(e instanceof ApiRequestError && e.code === "EMAIL_BELUM_TERVERIFIKASI");
       setError(e instanceof ApiRequestError && e.status === 401 ? `${message} Belum punya akun? Silakan daftar terlebih dahulu.` : message);
       setSubmitting(false);
+    }
+  }
+
+  async function resend() {
+    setInfo("");
+    try {
+      setInfo(await resendVerification(email.trim().toLowerCase()));
+    } catch (e) {
+      setError(e instanceof ApiRequestError ? e.message : "Gagal mengirim ulang. Coba lagi.");
     }
   }
 
@@ -93,13 +107,14 @@ export default function LoginForm({ initialEmail = "" }: { initialEmail?: string
         </select>
       </div>
 
-      {error && <div role="alert" className="mb-4 rounded-xl border border-red-100 bg-red-50 p-3 text-sm font-medium leading-5 text-red-700">{error}</div>}
+      {error && <div role="alert" className="mb-4 rounded-xl border border-red-100 bg-red-50 p-3 text-sm font-medium leading-5 text-red-700">{error}{needsVerification && <button type="button" onClick={resend} className="mt-2 block font-bold underline">Kirim ulang verifikasi</button>}</div>}
+      {info && <div role="status" className="mb-4 rounded-xl border border-emerald-100 bg-emerald-50 p-3 text-sm font-medium leading-5 text-emerald-800">{info}</div>}
 
       <label htmlFor="email" className="mb-2 block text-sm font-bold text-slate-700">Email SSO</label>
       <div className="relative mb-2"><Mail className="absolute left-3 top-3.5 text-slate-400" size={18} /><input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full rounded-xl border border-slate-200 py-3.5 pl-10 pr-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10" placeholder="nama@student.uns.ac.id" autoComplete="username" required /></div>
       <p className="mb-4 text-xs text-slate-400">{selectedRole?.requiresSso ? `Wajib menggunakan domain ${SSO_DOMAIN}` : "Akun orang tua dibuat dan dikaitkan ke mahasiswa oleh administrator."}</p>
 
-      <label htmlFor="password" className="mb-2 block text-sm font-bold text-slate-700">Password</label>
+      <div className="mb-2 flex items-center justify-between"><label htmlFor="password" className="block text-sm font-bold text-slate-700">Password</label><Link href="/forgot-password" className="text-xs font-bold text-blue-600 hover:underline">Lupa password?</Link></div>
       <div className="relative mb-6"><Lock className="absolute left-3 top-3.5 text-slate-400" size={18} /><input id="password" type={show ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} className="w-full rounded-xl border border-slate-200 py-3.5 pl-10 pr-11 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10" minLength={6} autoComplete="current-password" required /><button type="button" onClick={() => setShow(!show)} className="absolute right-3 top-3.5 text-slate-400" aria-label={show ? "Sembunyikan password" : "Tampilkan password"}>{show ? <EyeOff size={18} /> : <Eye size={18} />}</button></div>
 
       <Button type="submit" size="lg" className="w-full" disabled={submitting}><UserRound size={18} className="mr-2" />{submitting ? "Memproses..." : `Masuk sebagai ${ROLE_LABELS[role]}`}</Button>

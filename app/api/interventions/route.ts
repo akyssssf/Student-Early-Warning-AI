@@ -3,7 +3,7 @@ import { ZodError } from "zod";
 import { interventionSchema } from "@/lib/schemas";
 import { interventionsDb, nextInterventionId, studentsDb } from "@/lib/mockDb";
 import { scopeToClaims } from "@/lib/server/access";
-import { claimsFromRequest } from "@/lib/server/auth";
+import { claimsFromRequest } from "@/lib/server/session";
 
 export async function GET(request: NextRequest) {
   const claims = await claimsFromRequest(request);

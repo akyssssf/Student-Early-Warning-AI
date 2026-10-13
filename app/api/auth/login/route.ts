@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { ROLE_LABELS, isRole } from "@/lib/roles";
 import { ACCESS_COOKIE, REFRESH_COOKIE, REFRESH_MAX_AGE, cookieOptions, isHttps, secondsUntilExpiry } from "@/lib/server/auth";
-import { callBackend, configError } from "@/lib/server/backend";
+import { callBackend, clientIpOf, configError } from "@/lib/server/backend";
 
 const bodySchema = z.object({
   email: z.string().min(1, "Email wajib diisi."),
@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ message: parsed.error.issues[0]?.message ?? "Data login tidak valid." }, { status: 400 });
 
-  const result = await callBackend("/auth/login", { method: "POST", body: JSON.stringify({ username: parsed.data.email, password: parsed.data.password }) });
+  const result = await callBackend("/auth/login", { method: "POST", body: JSON.stringify({ username: parsed.data.email, password: parsed.data.password }), clientIp: clientIpOf(request) });
   if (result.status !== 200) return NextResponse.json(result.body ?? { message: "Login gagal." }, { status: result.status });
 
   const body = result.body as { access_token: string; refresh_token: string; role: string; user: { role: string } };

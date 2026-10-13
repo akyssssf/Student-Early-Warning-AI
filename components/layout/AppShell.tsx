@@ -34,6 +34,11 @@ export default function AppShell({ config, children }: Readonly<{ config: ShellC
     if (!session.isLoading && session.data === null) router.replace("/login");
   }, [session.isLoading, session.data, router]);
 
+  // Pulihkan tema yang tersimpan (sengaja setelah mount, lihat useUIStore).
+  useEffect(() => {
+    void useUIStore.persist.rehydrate();
+  }, []);
+
   // Tutup drawer mobile setiap pindah halaman.
   useEffect(() => setMobileOpen(false), [pathname]);
 

@@ -6,10 +6,15 @@ from app.models import User, DosenPA, Mahasiswa, OrangTua
 from app.security import hash_password
 
 import os
+import sys
+from datetime import datetime, timezone
 
 # Password akun demo. Untuk lingkungan non-lokal WAJIB diganti lewat SEED_PASSWORD.
 PASSWORD = os.getenv("SEED_PASSWORD", "123456")
 PRODI = "D3 Teknik Informatika"
+if os.getenv("APP_ENV", "production").lower() == "production" and PASSWORD == "123456" and os.getenv("ALLOW_INSECURE_SEED") != "1":
+    sys.exit("Menolak seed di production dengan password demo 123456. Set SEED_PASSWORD (atau ALLOW_INSECURE_SEED=1 untuk uji coba).")
+
 app = create_app()
 
 with app.app_context():
@@ -19,7 +24,8 @@ with app.app_context():
         u = User.query.filter_by(email=email).first()
         if u:
             return u, False
-        u = User(username=username, email=email, role=role, password_hash=hash_password(PASSWORD))
+        u = User(username=username, email=email, role=role, password_hash=hash_password(PASSWORD),
+                 email_verified_at=datetime.now(timezone.utc))
         db.session.add(u)
         db.session.flush()
         return u, True

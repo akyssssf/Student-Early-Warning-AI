@@ -22,7 +22,15 @@ const roleRoutes = [
 ] as const;
 
 /** Endpoint yang boleh dipanggil tanpa login. */
-const PUBLIC_API = new Set(["/api/auth/login", "/api/auth/register", "/api/auth/logout"]);
+const PUBLIC_API = new Set([
+  "/api/auth/login",
+  "/api/auth/register",
+  "/api/auth/logout",
+  "/api/auth/verify-email",
+  "/api/auth/resend-verification",
+  "/api/auth/forgot-password",
+  "/api/auth/reset-password",
+]);
 
 async function refreshAccessToken(refreshToken: string): Promise<string | null> {
   try {

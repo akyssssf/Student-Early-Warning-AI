@@ -1,4 +1,6 @@
 """Lapisan service: logika bisnis akun (dipakai auth & users)."""
+from datetime import datetime, timezone
+
 from sqlalchemy.exc import IntegrityError
 
 from .extensions import db
@@ -8,7 +10,7 @@ from .security import hash_password
 
 
 def create_user_with_profile(*, role, name, email, password, username=None, nim=None,
-                             nidn=None, prodi=None, angkatan=None):
+                             nidn=None, prodi=None, angkatan=None, verified=True):
     if User.query.filter_by(email=email).first():
         raise ApiError("EMAIL_SUDAH_ADA", "Email sudah terdaftar. Silakan masuk.", 409)
     if username:
@@ -29,7 +31,8 @@ def create_user_with_profile(*, role, name, email, password, username=None, nim=
     if role == "dosen" and DosenPA.query.filter_by(nidn=nidn).first():
         raise ApiError("NIDN_SUDAH_ADA", "NIDN sudah terdaftar.", 409)
 
-    user = User(username=username, email=email, role=role, password_hash=hash_password(password))
+    user = User(username=username, email=email, role=role, password_hash=hash_password(password),
+                email_verified_at=datetime.now(timezone.utc) if verified else None)
     db.session.add(user)
     db.session.flush()  # dapat id_user
     if role == "mahasiswa":
@@ -44,3 +47,33 @@ def create_user_with_profile(*, role, name, email, password, username=None, nim=
         db.session.rollback()
         raise ApiError("DATA_DUPLIKAT", "Email, username, atau NIM sudah terdaftar.", 409)
     return user
+
+
+def send_verification_email(user) -> bool:
+    from flask import current_app
+    from .mailer import send_email
+    from .tokens import make_verify_token
+
+    link = f"{current_app.config['FRONTEND_URL']}/verify-email?token={make_verify_token(user)}"
+    hours = current_app.config["VERIFY_TOKEN_HOURS"]
+    return send_email(
+        user.email,
+        "Verifikasi email Student Early Warning",
+        f"Halo {user.display_name},\n\nKlik tautan berikut untuk memverifikasi email kamu (berlaku {hours} jam):\n{link}\n\n"
+        "Kalau kamu tidak mendaftar, abaikan email ini.",
+    )
+
+
+def send_reset_email(user) -> bool:
+    from flask import current_app
+    from .mailer import send_email
+    from .tokens import make_reset_token
+
+    link = f"{current_app.config['FRONTEND_URL']}/reset-password?token={make_reset_token(user)}"
+    minutes = current_app.config["RESET_TOKEN_MINUTES"]
+    return send_email(
+        user.email,
+        "Reset password Student Early Warning",
+        f"Halo {user.display_name},\n\nKlik tautan berikut untuk membuat password baru (berlaku {minutes} menit, sekali pakai):\n{link}\n\n"
+        "Kalau kamu tidak meminta reset password, abaikan email ini; password kamu tidak berubah.",
+    )

@@ -15,6 +15,10 @@ def create_app(config_overrides=None):
     if config_overrides:
         app.config.update(config_overrides)
     validate_config(app.config)
+    if app.config["TRUSTED_PROXIES"]:
+        from werkzeug.middleware.proxy_fix import ProxyFix
+
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=app.config["TRUSTED_PROXIES"])
 
     CORS(app, origins=app.config["CORS_ORIGINS"])
     db.init_app(app)
@@ -24,6 +28,11 @@ def create_app(config_overrides=None):
     register_error_handlers(app, jwt)
 
     from . import models  # noqa: F401  (daftarkan semua tabel)
+
+    @jwt.token_in_blocklist_loader
+    def _is_revoked(_header, payload):
+        return models.RevokedToken.query.filter_by(jti=payload["jti"]).first() is not None
+
     from .auth import auth_bp
     from .users import users_bp
 

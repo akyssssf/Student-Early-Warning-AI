@@ -35,6 +35,10 @@ Dibuat oleh `python seed.py` di backend. Password demo `123456` (hanya untuk lok
 
 ### Akun dan pendaftaran
 - `/register` hanya untuk **mahasiswa** (email `@student.uns.ac.id`, NIM angka unik). Role lain tidak bisa dipilih lewat pendaftaran.
+- **Verifikasi email:** akun baru harus mengklik tautan di email (berlaku 24 jam) sebelum bisa masuk. Ada tombol kirim ulang di halaman login.
+- **Lupa password:** `/forgot-password` mengirim tautan reset (berlaku 60 menit, sekali pakai).
+- **Penguncian:** 5 kali salah password mengunci akun 15 menit.
+- Email dikirim lewat SMTP (`MAIL_*` di backend). Tanpa SMTP, tautan dicetak di log backend; dengan `docker compose`, email tertampung di Mailpit (http://localhost:8025).
 - Akun Dosen PA, Kaprodi, Admin, dan Orang Tua dibuat Admin lewat **Manajemen Pengguna**. Akun Orang Tua dikaitkan ke satu mahasiswa (NIM) oleh Admin, bukan dipilih sendiri saat login.
 - Akun tersimpan di database backend. Admin bisa menonaktifkan akun (efek langsung) tetapi tidak bisa menonaktifkan akunnya sendiri.
 - Mahasiswa dengan NIM yang belum ada di data akademik mock melihat "Data akademik belum tersedia". Data muncul setelah Admin/Dosen menambahkan NIM itu (CRUD atau impor CSV).
@@ -88,14 +92,25 @@ Buka http://localhost:3000. Tanpa `JWT_SECRET_KEY` saat `npm run dev`, frontend 
 |---|---|
 | `npm run typecheck` | Pemeriksaan tipe TypeScript |
 | `npm run lint` | ESLint (`next/core-web-vitals` + `next/typescript`) |
-| `npm test` | Unit test frontend (rumus risiko, parser CSV, akses/JWT) |
+| `npm test` | Test frontend: logika (risiko, CSV, JWT, akses), middleware, dan komponen React (form login/daftar/reset, dialog) |
+| `npm test -- --coverage` | Sama, dengan laporan cakupan |
 | `npm run build` | Build produksi |
 | `APP_ENV=testing pytest` (di `backend/`) | Test backend |
 
 Data mahasiswa dan catatan tindak lanjut (mock) kembali ke data awal setiap server frontend di-restart.
 
+## Menjalankan dengan Docker (satu perintah)
+Frontend, backend, MySQL, dan kotak surat tiruan (Mailpit) sekaligus:
+```bash
+cp .env.example .env     # isi JWT_SECRET_KEY (>= 32 karakter), MYSQL_ROOT_PASSWORD, SEED_PASSWORD
+docker compose up --build
+docker compose exec api python seed.py     # akun demo, sekali saja
+```
+Buka http://localhost:3000. Email verifikasi/reset tampil di http://localhost:8025. Cadangkan dan pulihkan database dengan `./scripts/backup-db.sh` dan `./scripts/restore-db.sh <file>`.
+Mailpit hanya untuk demo (email tidak benar-benar terkirim). Untuk email sungguhan isi `MAIL_*` dengan SMTP asli.
+
 ## Cara kerja autentikasi
-Browser tidak pernah memegang token yang bisa dibaca JavaScript. Login lewat route Next.js (`/api/auth/login`) yang meneruskan ke backend Flask, lalu menyimpan token di **cookie HttpOnly**. Middleware memverifikasi tanda tangan JWT di setiap halaman dan `/api/*`, memperbarui access token otomatis lewat refresh token, dan data API disaring per pengguna (mahasiswa/orang tua hanya melihat NIM miliknya). Rinciannya di [`docs/KEAMANAN.md`](docs/KEAMANAN.md).
+Browser tidak pernah memegang token yang bisa dibaca JavaScript. Login lewat route Next.js (`/api/auth/login`) yang meneruskan ke backend Flask, lalu menyimpan token di **cookie HttpOnly**. Middleware memverifikasi tanda tangan JWT di setiap halaman dan `/api/*`, memperbarui access token otomatis lewat refresh token, dan data API disaring per pengguna (mahasiswa/orang tua hanya melihat NIM miliknya). Logout mencabut kedua token di backend, dan route data memeriksa ke backend bahwa sesi belum dicabut atau akunnya belum dinonaktifkan. Rinciannya di [`docs/KEAMANAN.md`](docs/KEAMANAN.md).
 
 ## Dokumentasi
 - [`docs/README_MODUL.md`](docs/README_MODUL.md) checklist praktikum

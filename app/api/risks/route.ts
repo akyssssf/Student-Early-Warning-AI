@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { studentsDb } from "@/lib/mockDb";
 import { calculateRisk } from "@/lib/risk";
 import { scopeToClaims } from "@/lib/server/access";
-import { claimsFromRequest } from "@/lib/server/auth";
+import { claimsFromRequest } from "@/lib/server/session";
 
 export async function GET(request: NextRequest) {
   const claims = await claimsFromRequest(request);

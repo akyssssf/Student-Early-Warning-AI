@@ -1,4 +1,5 @@
 import os
+from datetime import datetime, timezone
 
 os.environ.setdefault("BCRYPT_ROUNDS", "4")
 
@@ -38,7 +39,8 @@ def app():
 
 
 def _add(username, email, role):
-    user = User(username=username, email=email, role=role, password_hash=hash_password(PASSWORD))
+    user = User(username=username, email=email, role=role, password_hash=hash_password(PASSWORD),
+                email_verified_at=datetime.now(timezone.utc))
     db.session.add(user)
     db.session.flush()
     return user

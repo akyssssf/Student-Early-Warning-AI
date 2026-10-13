@@ -4,7 +4,7 @@ import { studentSchema } from "@/lib/schemas";
 import { studentsDb } from "@/lib/mockDb";
 import { asStudentId } from "@/lib/types";
 import { scopeToClaims } from "@/lib/server/access";
-import { claimsFromRequest } from "@/lib/server/auth";
+import { claimsFromRequest } from "@/lib/server/session";
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 

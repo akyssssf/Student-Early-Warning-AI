@@ -31,14 +31,7 @@ python run.py                   # http://127.0.0.1:5000
 Debugger Flask hanya menyala saat `APP_ENV=development`, dan hanya di `127.0.0.1`.
 
 ## Jalankan dengan Docker
-```bash
-cd backend
-cp .env.example .env
-# isi JWT_SECRET_KEY dan MYSQL_ROOT_PASSWORD, ubah APP_ENV=production
-docker compose up --build
-docker compose exec api python seed.py     # akun demo, sekali saja
-```
-Container `api` menjalankan `flask db upgrade` otomatis saat start dan menunggu MySQL sehat. Port 5000 hanya dibuka ke `127.0.0.1`.
+`docker-compose.yml` ada di **root repo** (frontend + backend + MySQL + Mailpit); lihat README root. Container `api` menjalankan `flask db upgrade` otomatis saat start dan menunggu MySQL sehat. `database/schema.sql` dihasilkan dari model (`python scripts/generate_schema_sql.py`) dan aman diimpor ulang.
 
 ## Test
 ```bash
@@ -52,11 +45,18 @@ APP_ENV=testing pytest
 | POST | /auth/login | publik | body `username` (atau email) + `password` -> `access_token`, `refresh_token`, `role`, `user` |
 | GET | /auth/me | token | profil akun yang sedang login (401 kalau akun nonaktif) |
 | POST | /auth/refresh | refresh token | access token baru |
+| POST | /auth/logout | token | mencabut token yang dikirim (panggil untuk access dan refresh) |
+| POST | /auth/verify-email | publik | body `token` dari email; menandai email terverifikasi |
+| POST | /auth/resend-verification | publik | body `email`; jawaban sama untuk email terdaftar atau tidak |
+| POST | /auth/forgot-password | publik | body `email`; kirim tautan reset (jawaban sama) |
+| POST | /auth/reset-password | publik | body `token` + `password`; token sekali pakai |
 | POST | /auth/register | publik* | *tambahan: daftar mandiri khusus mahasiswa (`ALLOW_SELF_REGISTER`) |
 | GET/POST | /users | admin | daftar / buat akun semua role |
 | PUT/DELETE | /users/{id} | admin | ubah / nonaktifkan akun (admin tidak bisa menonaktifkan dirinya sendiri) |
 | PATCH | /users/mahasiswa/{nim}/dosen-pa | admin | tugaskan Dosen PA |
 | GET | /health | publik | cek ketersediaan |
+
+Akun dikunci 15 menit setelah 5 kali salah password (`MAX_FAILED_LOGINS`, `LOCK_MINUTES`). Pendaftaran mandiri butuh verifikasi email (`REQUIRE_EMAIL_VERIFICATION`); akun buatan Admin dan akun seed langsung terverifikasi. Email dikirim lewat SMTP (`MAIL_*`); tanpa `MAIL_HOST` tautannya dicetak di log. Di belakang proxy (frontend), isi `TRUSTED_PROXIES=1` agar rate limit per IP klien.
 
 Error: `{"code": "KREDENSIAL_SALAH", "message": "..."}` (Indonesia, kode konsisten - NFR-07).
 Rate limit: login 10/menit, register 5/menit, refresh 30/menit per IP (penyimpanan memori per proses; untuk
@@ -75,5 +75,4 @@ Role dan status aktif dibaca dari database pada setiap request ber-RBAC, jadi ak
 
 ## Belum ada
 - Fitur nomor WA (commit "Tambah fitur No WA dan Login Ortu" hanya menambah `.env.example`; tidak ada kolom/endpoint nomor telepon).
-- Pencabutan (revoke) refresh token saat logout, token tetap valid sampai kedaluwarsa.
 - Modul import, risk, dashboard, catatan, notifikasi, laporan.

@@ -166,3 +166,35 @@ class UserUpdateIn(BaseModel):
 
 class AssignDosenIn(BaseModel):
     id_dosen_pa: int
+
+
+class TokenIn(BaseModel):
+    token: str
+
+    @field_validator("token")
+    @classmethod
+    def _t(cls, v):
+        v = v.strip()
+        if not v:
+            raise ValueError("Token wajib diisi.")
+        return v
+
+
+class EmailIn(BaseModel):
+    email: str
+
+    @field_validator("email")
+    @classmethod
+    def _e(cls, v):
+        return _email_any(v)
+
+
+class ResetPasswordIn(TokenIn):
+    password: str
+
+    @field_validator("password")
+    @classmethod
+    def _p(cls, v):
+        if len(v) < 8:
+            raise ValueError("Password minimal 8 karakter.")
+        return v

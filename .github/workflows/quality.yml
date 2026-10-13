@@ -71,3 +71,26 @@ jobs:
       - run: npm run typecheck
       - run: npm run check
       - run: npm run build
+
+  docker:
+    name: Docker (build semua image)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Siapkan .env contoh
+        run: |
+          printf 'MYSQL_ROOT_PASSWORD=ci-password\nJWT_SECRET_KEY=%s\nSEED_PASSWORD=ci-seed-password\n' "$(python3 -c 'import secrets;print(secrets.token_urlsafe(48))')" > .env
+      - run: docker compose config --quiet
+      - run: docker compose build
+      - name: Jalankan stack dan uji kesehatan
+        run: |
+          docker compose up -d
+          for i in $(seq 1 40); do
+            if docker compose exec -T api python -c "import urllib.request;urllib.request.urlopen('http://127.0.0.1:5000/api/v1/health')" 2>/dev/null; then break; fi
+            sleep 3
+          done
+          docker compose exec -T api python seed.py
+          curl --fail --retry 10 --retry-delay 2 --retry-connrefused -s -o /dev/null http://127.0.0.1:3000/login
+          docker compose exec -T api python -c "import urllib.request,json;r=urllib.request.urlopen('http://127.0.0.1:5000/api/v1/health');print(r.read())"
+      - if: failure()
+        run: docker compose logs --no-color | tail -80

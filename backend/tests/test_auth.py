@@ -98,6 +98,19 @@ def test_rate_limit_login():
     app = make_app(RATELIMIT_ENABLED=True)
     client = app.test_client()
     with app.app_context():
-        codes = [client.post("/api/v1/auth/login", json={"username": "alya", "password": "salahsalah"}).status_code for _ in range(12)]
+        codes = [client.post("/api/v1/auth/login", json={"username": "tidakada", "password": "salahsalah"}).status_code for _ in range(12)]
     assert codes[:10] == [401] * 10
     assert 429 in codes[10:]
+
+
+def test_rate_limit_per_ip_klien_di_belakang_proxy_tepercaya():
+    from tests.conftest import make_app
+
+    app = make_app(RATELIMIT_ENABLED=True, TRUSTED_PROXIES=1)
+    client = app.test_client()
+    with app.app_context():
+        def attempt(ip):
+            return client.post("/api/v1/auth/login", json={"username": "tidakada", "password": "salahsalah"}, headers={"X-Forwarded-For": ip}).status_code
+
+        assert [attempt("10.0.0.1") for _ in range(11)][-1] == 429
+        assert attempt("10.0.0.2") == 401  # IP klien lain tidak ikut terkena

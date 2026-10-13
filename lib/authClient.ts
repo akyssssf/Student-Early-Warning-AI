@@ -38,8 +38,28 @@ export async function login(input: { email: string; password: string; role: User
   return result.user;
 }
 
-export async function registerStudent(input: { name: string; email: string; password: string; nim: string }): Promise<SessionUser> {
-  return request<SessionUser>("/api/auth/register", { method: "POST", body: JSON.stringify(input) });
+export async function registerStudent(input: { name: string; email: string; password: string; nim: string }): Promise<SessionUser & { verification_required?: boolean }> {
+  return request<SessionUser & { verification_required?: boolean }>("/api/auth/register", { method: "POST", body: JSON.stringify(input) });
+}
+
+export type MessageResponse = { ok: boolean; message?: string };
+
+export async function verifyEmail(token: string): Promise<void> {
+  await request("/api/auth/verify-email", { method: "POST", body: JSON.stringify({ token }) });
+}
+
+export async function resendVerification(email: string): Promise<string> {
+  const result = await request<MessageResponse>("/api/auth/resend-verification", { method: "POST", body: JSON.stringify({ email }) });
+  return result.message ?? "Jika email terdaftar, tautan verifikasi sudah dikirim.";
+}
+
+export async function forgotPassword(email: string): Promise<string> {
+  const result = await request<MessageResponse>("/api/auth/forgot-password", { method: "POST", body: JSON.stringify({ email }) });
+  return result.message ?? "Jika email terdaftar, tautan reset password sudah dikirim.";
+}
+
+export async function resetPassword(token: string, password: string): Promise<void> {
+  await request("/api/auth/reset-password", { method: "POST", body: JSON.stringify({ token, password }) });
 }
 
 export async function logout(): Promise<void> {

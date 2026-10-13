@@ -52,11 +52,6 @@ export function secondsUntilExpiry(token: string, fallback: number): number {
   }
 }
 
-/** Klaim dari cookie request (middleware sudah memastikan valid; ini untuk menyaring data per pengguna). */
-export async function claimsFromRequest(request: { cookies: { get(name: string): { value: string } | undefined } }): Promise<Claims | null> {
-  return verifyAccessToken(request.cookies.get(ACCESS_COOKIE)?.value);
-}
-
 export const REFRESH_MAX_AGE = 7 * 24 * 60 * 60;
 
 export type CookieOptions = { httpOnly: true; sameSite: "lax"; secure: boolean; path: "/"; maxAge: number };
