@@ -10,6 +10,10 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   const { email } = await searchParams;
   const initialEmail = typeof email === "string" ? email : "";
 
+  // Mode demo: dropdown akun demo + (opsional) password demo. HANYA untuk lokal; jangan aktifkan di server publik,
+  // karena password demo ikut terkirim ke browser. Docker demo mengisinya, docker-compose.prod.yml tidak.
+  const demo = process.env.DEMO_MODE === "1" ? { password: process.env.DEMO_PASSWORD || undefined } : null;
+
   return (
     <main className="min-h-screen bg-slate-50">
       <div className="mx-auto flex min-h-screen max-w-6xl items-center justify-center px-6 py-10">
@@ -20,7 +24,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
             <p className="mt-2 text-sm text-slate-500">Gunakan akun sesuai dengan role kamu.</p>
           </div>
 
-          <LoginForm initialEmail={initialEmail} />
+          <LoginForm initialEmail={initialEmail} demo={demo} />
         </div>
       </div>
     </main>

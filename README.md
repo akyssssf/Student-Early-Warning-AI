@@ -19,7 +19,7 @@ Frontend **membutuhkan backend berjalan** untuk login.
 > Role Orang Tua adalah pengembangan tambahan. SRS versi 1.0 mendefinisikan empat aktor: Admin, Dosen PA, Kaprodi, dan Mahasiswa.
 
 ## Akun demo
-Dibuat oleh `python seed.py` di backend. Password demo `123456` (hanya untuk lokal, ganti lewat `SEED_PASSWORD`). Di halaman login ada dropdown **Akun demo** yang mengisi form otomatis.
+Dibuat oleh `python seed.py` di backend. Passwordnya = `SEED_PASSWORD` yang kamu isi saat seed (default `123456` hanya untuk seed lokal tanpa Docker). Di **Docker demo** halaman login punya dropdown **Akun demo** yang mengisi email, jenis akun, dan password otomatis (mode demo: `DEMO_MODE=1`). Tanpa mode demo (compose production, atau `npm run dev` tanpa `DEMO_MODE`) dropdown tidak tampil. **Jangan aktifkan `DEMO_MODE` di server publik**, karena password demo ikut terkirim ke browser.
 
 | Role | Email |
 |---|---|

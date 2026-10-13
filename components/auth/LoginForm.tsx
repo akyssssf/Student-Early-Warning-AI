@@ -7,7 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Eye, EyeOff, Lock, Mail, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { ApiRequestError, login, resendVerification } from "@/lib/authClient";
-import { DEMO_ACCOUNTS, DEMO_PASSWORD } from "@/lib/demoAccounts";
+import { DEMO_ACCOUNTS } from "@/lib/demoAccounts";
 import { ROLE_HOME, ROLE_LABELS, isRole, type UserRole } from "@/lib/roles";
 import { SESSION_KEY } from "@/hooks/useSession";
 
@@ -21,7 +21,9 @@ const roleOptions: Array<{ value: UserRole; description: string; requiresSso: bo
   { value: "orangtua", description: "Akun pendamping mahasiswa", requiresSso: false },
 ];
 
-export default function LoginForm({ initialEmail = "" }: { initialEmail?: string }) {
+export type DemoMode = { password?: string } | null;
+
+export default function LoginForm({ initialEmail = "", demo = null }: { initialEmail?: string; demo?: DemoMode }) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [role, setRole] = useState<UserRole>("mahasiswa");
@@ -54,7 +56,7 @@ export default function LoginForm({ initialEmail = "" }: { initialEmail?: string
     if (!account) return;
     setRole(account.role);
     setEmail(account.email);
-    setPassword(DEMO_PASSWORD);
+    setPassword(demo?.password ?? "");
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -94,11 +96,16 @@ export default function LoginForm({ initialEmail = "" }: { initialEmail?: string
     <form onSubmit={submit} className="mx-auto max-w-md">
       <div className="mb-7"><p className="text-sm font-extrabold text-blue-600">Selamat datang kembali</p><h2 className="mt-1 text-3xl font-black tracking-tight text-slate-950">Masuk ke sistem</h2><p className="mt-2 text-sm leading-6 text-slate-500">Pilih jenis akun dari daftar di bawah, lalu masuk dengan email dan password.</p></div>
 
-      <label htmlFor="demo-account" className="mb-2 block text-sm font-bold text-slate-700">Akun demo <span className="font-medium text-slate-400">(opsional)</span></label>
-      <select id="demo-account" value={demoEmail} onChange={(e) => pickDemoAccount(e.target.value)} className="mb-5 w-full appearance-none rounded-xl border border-dashed border-blue-300 bg-blue-50/50 px-4 py-3.5 text-sm font-semibold text-slate-800 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10">
-        <option value="">Pilih akun demo untuk mengisi form otomatis</option>
-        {DEMO_ACCOUNTS.map((account) => <option key={account.email} value={account.email}>{account.name} — {ROLE_LABELS[account.role]}{account.nim ? ` (${account.nim})` : ""}</option>)}
-      </select>
+      {demo && (
+        <>
+        <label htmlFor="demo-account" className="mb-2 block text-sm font-bold text-slate-700">Akun demo <span className="font-medium text-slate-400">(opsional)</span></label>
+        <select id="demo-account" value={demoEmail} onChange={(e) => pickDemoAccount(e.target.value)} className="mb-5 w-full appearance-none rounded-xl border border-dashed border-blue-300 bg-blue-50/50 px-4 py-3.5 text-sm font-semibold text-slate-800 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10">
+          <option value="">Pilih akun demo untuk mengisi form otomatis</option>
+          {DEMO_ACCOUNTS.map((account) => <option key={account.email} value={account.email}>{account.name} — {ROLE_LABELS[account.role]}{account.nim ? ` (${account.nim})` : ""}</option>)}
+        </select>
+          {!demo.password && <p className="-mt-3 mb-5 text-xs text-slate-500">Dropdown hanya mengisi email dan jenis akun. Ketik password yang kamu isi di <code>SEED_PASSWORD</code>.</p>}
+        </>
+      )}
 
       <label htmlFor="role" className="mb-2 block text-sm font-bold text-slate-700">Jenis akun</label>
       <div className="relative mb-5">

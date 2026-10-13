@@ -1,8 +1,6 @@
 import type { UserRole } from "@/lib/roles";
 
-/** Akun demo dari backend/seed.py (password demo-nya 123456). Hanya untuk pengisian form login otomatis. */
-export const DEMO_PASSWORD = "123456";
-
+/** Akun demo dari backend/seed.py. Passwordnya = SEED_PASSWORD yang dipakai saat seed; lihat `demo` di app/login/page.tsx. */
 export type DemoAccount = { name: string; email: string; role: UserRole; nim?: string };
 
 export const DEMO_ACCOUNTS: DemoAccount[] = [

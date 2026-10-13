@@ -72,6 +72,29 @@ describe("LoginForm", () => {
   });
 });
 
+describe("LoginForm mode demo", () => {
+  it("tanpa mode demo, dropdown akun demo tidak tampil", () => {
+    wrap(<LoginForm demo={null} />);
+    expect(screen.queryByLabelText(/Akun demo/)).toBeNull();
+  });
+
+  it("mode demo dengan password: memilih akun mengisi email, jenis akun, dan password seed", async () => {
+    wrap(<LoginForm demo={{ password: "DemoUji2026" }} />);
+    await userEvent.selectOptions(screen.getByLabelText(/Akun demo/), "dosen@student.uns.ac.id");
+    expect(screen.getByLabelText("Email SSO")).toHaveValue("dosen@student.uns.ac.id");
+    expect(screen.getByLabelText("Password")).toHaveValue("DemoUji2026");
+    expect(screen.getByLabelText("Jenis akun")).toHaveValue("dosen");
+  });
+
+  it("mode demo tanpa password: password dikosongkan dan ada petunjuk", async () => {
+    wrap(<LoginForm demo={{}} />);
+    await userEvent.selectOptions(screen.getByLabelText(/Akun demo/), "orangtua@example.com");
+    expect(screen.getByLabelText("Password")).toHaveValue("");
+    expect(screen.getByLabelText("Jenis akun")).toHaveValue("orangtua");
+    expect(screen.getByText(/SEED_PASSWORD/)).toBeTruthy();
+  });
+});
+
 describe("RegisterForm", () => {
   async function fill(overrides: Partial<Record<string, string>> = {}) {
     const v = { "Nama lengkap": "Tata Meirzha", NIM: "2024006", "Email SSO": "tata@student.uns.ac.id", "Password SSO": "Rahasia-123", "Konfirmasi password": "Rahasia-123", ...overrides };

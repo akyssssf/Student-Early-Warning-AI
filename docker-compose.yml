@@ -10,6 +10,9 @@ services:
     environment:
       BACKEND_URL: http://api:5000
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:?isi JWT_SECRET_KEY di .env (>= 32 karakter, sama dengan backend)}
+      # Mode demo (hanya lokal): dropdown akun demo di halaman login mengisi password seed secara otomatis.
+      DEMO_MODE: "1"
+      DEMO_PASSWORD: ${SEED_PASSWORD:-}
     ports: ["127.0.0.1:3000:3000"]
     depends_on: [api]
     restart: unless-stopped
