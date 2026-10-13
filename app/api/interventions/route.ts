@@ -1,11 +1,15 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { ZodError } from "zod";
 import { interventionSchema } from "@/lib/schemas";
 import { interventionsDb, nextInterventionId, studentsDb } from "@/lib/mockDb";
+import { scopeToClaims } from "@/lib/server/access";
+import { claimsFromRequest } from "@/lib/server/auth";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const claims = await claimsFromRequest(request);
+  if (!claims) return NextResponse.json({ message: "Silakan login terlebih dahulu." }, { status: 401 });
   await new Promise((resolve) => setTimeout(resolve, 350));
-  return NextResponse.json(interventionsDb);
+  return NextResponse.json(scopeToClaims(interventionsDb, claims));
 }
 
 export async function POST(request: Request) {

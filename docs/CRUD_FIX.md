@@ -12,4 +12,4 @@ Halaman `/dashboard/mahasiswa` sekarang mendukung:
 
 Data menggunakan mock in-memory API untuk kebutuhan praktikum (`lib/mockDb.ts`, disimpan di `globalThis` agar semua route handler memakai data yang sama). Data akan kembali ke data awal setelah server direstart.
 
-Endpoint tulis (`POST/PUT/DELETE /api/students`) hanya menerima role Dosen PA dan Admin. Admin juga bisa menambah/memperbarui banyak mahasiswa sekaligus lewat impor CSV.
+Endpoint tulis (`POST/PUT/DELETE /api/students`) hanya menerima role Dosen PA dan Admin, dan `GET` hanya mengembalikan data yang boleh dilihat peran tersebut. Admin juga bisa menambah/memperbarui banyak mahasiswa sekaligus lewat impor CSV.

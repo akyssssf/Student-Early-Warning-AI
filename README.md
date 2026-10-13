@@ -1,6 +1,11 @@
 # Student Early Warning AI
 
-Front-end sistem peringatan dini risiko akademik mahasiswa, dibuat berdasarkan SKPL dan kebutuhan praktikum. Semua data berupa **mock** (di memori server dan `localStorage`), belum ada backend sungguhan.
+Sistem peringatan dini risiko akademik mahasiswa, dibuat berdasarkan SKPL dan kebutuhan praktikum.
+
+- **Frontend** (root repo): Next.js. Data akademik (mahasiswa, risk score, catatan tindak lanjut) masih **mock** di memori server.
+- **Backend** ([`backend/`](backend/README.md)): Flask + MySQL/SQLite. Saat ini mengurus **login, pendaftaran, dan manajemen akun** (JWT + bcrypt). Modul import/risk/dashboard/catatan menyusul; sampai saat itu frontend memakai mock API untuk data akademik.
+
+Frontend **membutuhkan backend berjalan** untuk login.
 
 ## Role
 | Role | Dashboard | Keterangan |
@@ -14,7 +19,7 @@ Front-end sistem peringatan dini risiko akademik mahasiswa, dibuat berdasarkan S
 > Role Orang Tua adalah pengembangan tambahan. SRS versi 1.0 mendefinisikan empat aktor: Admin, Dosen PA, Kaprodi, dan Mahasiswa.
 
 ## Akun demo
-Semua akun demo memakai password `123456`. Di halaman login ada dropdown **Akun demo** yang mengisi form otomatis.
+Dibuat oleh `python seed.py` di backend. Password demo `123456` (hanya untuk lokal, ganti lewat `SEED_PASSWORD`). Di halaman login ada dropdown **Akun demo** yang mengisi form otomatis.
 
 | Role | Email |
 |---|---|
@@ -26,13 +31,13 @@ Semua akun demo memakai password `123456`. Di halaman login ada dropdown **Akun 
 | Dosen PA | `dosen@student.uns.ac.id` |
 | Kaprodi | `kaprodi@student.uns.ac.id` |
 | Admin | `admin@student.uns.ac.id` |
-| Orang Tua (pilih mahasiswa di form login) | `orangtua@example.com` |
+| Orang Tua (memantau Alya, NIM 2024001) | `orangtua@example.com` |
 
-### Pendaftaran
-- Halaman `/register` hanya untuk **mahasiswa** (email `@student.uns.ac.id`, NIM unik).
-- Akun Dosen PA, Kaprodi, Admin, dan Orang Tua dibuat Admin lewat **Manajemen Pengguna**.
-- Akun hasil pendaftaran disimpan di `localStorage` browser yang dipakai, jadi tidak muncul di browser lain.
-- Mahasiswa dengan NIM yang belum ada di data akademik melihat status "Data akademik belum tersedia". Data muncul setelah Admin/Dosen menambahkan NIM itu (CRUD atau impor CSV).
+### Akun dan pendaftaran
+- `/register` hanya untuk **mahasiswa** (email `@student.uns.ac.id`, NIM angka unik). Role lain tidak bisa dipilih lewat pendaftaran.
+- Akun Dosen PA, Kaprodi, Admin, dan Orang Tua dibuat Admin lewat **Manajemen Pengguna**. Akun Orang Tua dikaitkan ke satu mahasiswa (NIM) oleh Admin, bukan dipilih sendiri saat login.
+- Akun tersimpan di database backend. Admin bisa menonaktifkan akun (efek langsung) tetapi tidak bisa menonaktifkan akunnya sendiri.
+- Mahasiswa dengan NIM yang belum ada di data akademik mock melihat "Data akademik belum tersedia". Data muncul setelah Admin/Dosen menambahkan NIM itu (CRUD atau impor CSV).
 
 ## Risk score
 Risk score dihitung dengan **rumus berbobot (rule-based)**, bukan model machine learning:
@@ -42,23 +47,42 @@ Risk score dihitung dengan **rumus berbobot (rule-based)**, bukan model machine 
 Kategori: **Tinggi** bila skor >= 70, **Sedang** bila >= 40, selain itu **Rendah**. Rumus ada di satu tempat: [`lib/risk.ts`](lib/risk.ts).
 
 ## Teknologi
-Next.js 15 App Router, React 19, TypeScript strict, Tailwind CSS v4, CVA, Zod, Zustand, TanStack Query, Middleware, mock REST API, ESLint, Vitest.
+Frontend: Next.js 15 App Router, React 19, TypeScript strict, Tailwind CSS v4, CVA, Zod, Zustand, TanStack Query, Middleware, jose (verifikasi JWT), ESLint, Vitest. Backend: Flask 3, SQLAlchemy 2, JWT, bcrypt, Pydantic, pytest, Docker.
 
-## Menjalankan
+## Menjalankan (frontend + backend)
+
+**1. Backend** (terminal pertama, detail lengkap di [`backend/README.md`](backend/README.md)):
+```bash
+cd backend
+python -m venv venv && source venv/bin/activate   # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+cp .env.example .env        # isi JWT_SECRET_KEY (>= 32 karakter), APP_ENV=development, DATABASE_URL
+flask --app run.py db upgrade
+python seed.py
+python run.py               # http://127.0.0.1:5000
+```
+> macOS: port 5000 dipakai AirPlay Receiver. Kalau `http://127.0.0.1:5000/api/v1/health` tidak menjawab `{"status":"ok"}`, jalankan `PORT=5001 python run.py` dan set `BACKEND_URL=http://127.0.0.1:5001` di frontend.
+
+**2. Frontend** (terminal kedua, dari root repo):
 ```bash
 npm install
+cp .env.example .env.local  # JWT_SECRET_KEY HARUS sama dengan backend/.env
 npm run dev
 ```
-Buka http://localhost:3000
+Buka http://localhost:3000. Tanpa `JWT_SECRET_KEY` saat `npm run dev`, frontend memakai secret development bawaan backend (hanya cocok jika backend `APP_ENV=development` dan `JWT_SECRET_KEY` kosong). Di production `JWT_SECRET_KEY` wajib diisi.
 
 | Perintah | Fungsi |
 |---|---|
 | `npm run typecheck` | Pemeriksaan tipe TypeScript |
 | `npm run lint` | ESLint (`next/core-web-vitals` + `next/typescript`) |
-| `npm test` | Unit test (rumus risiko, parser CSV) |
+| `npm test` | Unit test frontend (rumus risiko, parser CSV, akses/JWT) |
 | `npm run build` | Build produksi |
+| `APP_ENV=testing pytest` (di `backend/`) | Test backend |
 
-Data mahasiswa dan catatan tindak lanjut disimpan di memori server dan kembali ke data awal setiap server di-restart.
+Data mahasiswa dan catatan tindak lanjut (mock) kembali ke data awal setiap server frontend di-restart.
+
+## Cara kerja autentikasi
+Browser tidak pernah memegang token yang bisa dibaca JavaScript. Login lewat route Next.js (`/api/auth/login`) yang meneruskan ke backend Flask, lalu menyimpan token di **cookie HttpOnly**. Middleware memverifikasi tanda tangan JWT di setiap halaman dan `/api/*`, memperbarui access token otomatis lewat refresh token, dan data API disaring per pengguna (mahasiswa/orang tua hanya melihat NIM miliknya). Rinciannya di [`docs/KEAMANAN.md`](docs/KEAMANAN.md).
 
 ## Dokumentasi
 - [`docs/README_MODUL.md`](docs/README_MODUL.md) checklist praktikum
@@ -66,7 +90,7 @@ Data mahasiswa dan catatan tindak lanjut disimpan di memori server dan kembali k
 - [`docs/MATRIKS_SRS_VS_FRONTEND.md`](docs/MATRIKS_SRS_VS_FRONTEND.md) kebutuhan SRS vs implementasi
 - [`docs/MATRIKS_STATE.md`](docs/MATRIKS_STATE.md) pemisahan state
 - [`docs/CRUD_FIX.md`](docs/CRUD_FIX.md) CRUD data mahasiswa
-- [`docs/KEAMANAN.md`](docs/KEAMANAN.md) **batasan keamanan demo** (baca sebelum dipakai di luar kelas)
+- [`docs/KEAMANAN.md`](docs/KEAMANAN.md) model keamanan dan batasan yang tersisa
 
 ## Modul 8, Build Tools Modern
 Dikerjakan sebagai subproject terpisah di [`modul-8-vite/`](modul-8-vite/) karena aplikasi utama memakai Next.js App Router. Berisi Vite + React + Strict TypeScript + Biome, path alias, manual chunks, demo HMR, konfigurasi SonarQube, matriks migrasi, dan benchmark PDF. CI untuk kedua proyek ada di [`.github/workflows/quality.yml`](.github/workflows/quality.yml).

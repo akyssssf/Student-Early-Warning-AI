@@ -1,25 +1,29 @@
-# Batasan Keamanan (Demo Front-End)
+# Keamanan
 
-Proyek ini simulasi untuk praktikum. **Jangan dipakai dengan data mahasiswa sungguhan** tanpa mengganti bagian di bawah.
+## Alur autentikasi
+1. Form login memanggil `POST /api/auth/login` (route Next.js), yang meneruskan kredensial ke backend Flask (`POST /api/v1/auth/login`).
+2. Backend memeriksa password dengan **bcrypt**, lalu mengeluarkan JWT: access token 15 menit dan refresh token 7 hari.
+3. Route Next.js menyimpan keduanya di cookie **HttpOnly** (`sew_access`, `sew_refresh`; `SameSite=Lax`; `Secure` saat HTTPS). JavaScript di browser tidak bisa membaca token, jadi XSS tidak bisa mencurinya, dan cookie tidak bisa dipalsukan lewat DevTools karena tanda tangannya diverifikasi.
+4. `middleware.ts` memverifikasi tanda tangan JWT (HS256, `JWT_SECRET_KEY` sama dengan backend) di setiap halaman dashboard dan `/api/*`. Access token yang habis diperbarui otomatis lewat refresh token.
+5. Halaman memulihkan identitas lewat `GET /api/auth/me`, yang juga memeriksa ke backend bahwa akun masih aktif.
 
-## Yang sudah dilakukan
-- Pendaftaran mandiri hanya untuk role Mahasiswa. Akun role lain dibuat Admin.
-- NIM harus unik, sehingga satu NIM tidak bisa diklaim dua akun (termasuk NIM akun demo).
-- Middleware menjaga halaman dashboard per role **dan** `/api/*`:
-  - tanpa cookie sesi: respons `401`;
-  - mengubah data mahasiswa (`POST/PUT/DELETE /api/students`) hanya untuk Dosen PA dan Admin;
-  - menambah tindak lanjut (`POST /api/interventions`) hanya untuk Dosen PA;
-  - satu-satunya endpoint publik adalah `GET /api/students/lookup` (NIM + nama untuk dropdown login Orang Tua).
-- Server memvalidasi input dengan Zod dan menolak catatan tindak lanjut untuk NIM yang tidak ada.
-- Logout menghapus semua cookie sesi (`sew_session`, `sew_role`, `sew_email`, `sew_nim`).
+## Kontrol yang berlaku
+- Role dalam token menentukan halaman yang boleh dibuka; role yang salah dialihkan ke dashboard miliknya.
+- `/api/*` tanpa sesi valid menjawab `401`. Mengubah data mahasiswa hanya Dosen PA dan Admin, menulis tindak lanjut hanya Dosen PA, `/api/users` hanya Admin (`403` selain itu). Backend memeriksa ulang role dan status aktif dari database.
+- Data disaring per pengguna di server: Mahasiswa dan Orang Tua hanya menerima data NIM miliknya (Orang Tua: NIM anak yang ditetapkan Admin).
+- Permintaan tulis dengan header `Origin` dari situs lain ditolak (pertahanan CSRF tambahan di luar `SameSite`).
+- Akun dinonaktifkan Admin: login ditolak, token lama ditolak oleh endpoint ber-RBAC dan `/auth/me`, refresh gagal.
+- Pendaftaran mandiri hanya membuat role Mahasiswa; NIM unik; Admin tidak bisa menonaktifkan akunnya sendiri.
+- Backend menolak start di production tanpa `JWT_SECRET_KEY` >= 32 karakter; debugger Flask hanya di `APP_ENV=development` pada `127.0.0.1`.
+- Rate limit login 10/menit, register 5/menit, refresh 30/menit per IP; waktu respons login tidak membocorkan apakah akun ada.
 
-## Batasan yang tersisa (sengaja, karena tidak ada backend)
-| Batasan | Dampak | Perbaikan di production |
+## Batasan yang tersisa
+| Batasan | Dampak | Perbaikan |
 |---|---|---|
-| Sesi adalah cookie biasa yang dibuat di browser | Pengguna bisa memalsukan `sew_role` lewat DevTools dan melewati middleware | Sesi bertanda tangan/HttpOnly yang dibuat server (mis. Auth.js atau SSO kampus) |
-| Akun dan password disimpan **plaintext** di `localStorage` | Siapa pun yang memakai browser itu bisa membaca password | Autentikasi di server, password di-hash (argon2/bcrypt), tanpa menyimpan kredensial di client |
-| Akun hasil pendaftaran hanya ada di satu browser | Admin hanya melihat akun dari browser yang sama | Database pengguna di server |
-| Data mahasiswa di memori server | Hilang saat server restart; tidak aman untuk multi-instance | Database |
-| Otorisasi per data belum ada (mis. orang tua hanya boleh lihat anaknya) | API `GET /api/students` mengembalikan semua mahasiswa untuk semua role yang login | Filter di server berdasarkan identitas sesi |
-| Orang Tua memilih sendiri mahasiswa yang dipantau | Tidak ada verifikasi hubungan orang tua dan mahasiswa | Relasi terverifikasi di database |
-| Password demo `123456` terisi otomatis di form login | Hanya untuk kemudahan demo | Hapus prefill |
+| Refresh token tidak bisa dicabut saat logout | Token yang sempat tercuri tetap berlaku sampai 7 hari | Daftar token dicabut (blocklist) di backend |
+| Rate limit disimpan di memori per proses | Tidak berlaku lintas worker/instance | Redis lewat `RATELIMIT_STORAGE_URI` |
+| Data akademik (mahasiswa, risk, tindak lanjut) masih mock di memori server frontend | Hilang saat restart; bukan database | Selesaikan modul backend import/risk/catatan lalu hubungkan |
+| Password demo `123456` dari `seed.py` | Hanya aman untuk lokal | Set `SEED_PASSWORD` atau jangan jalankan seed di server |
+| Cookie `Secure` hanya aktif di HTTPS | Lewat HTTP biasa cookie bisa disadap | Pasang HTTPS (reverse proxy) di production |
+| Tidak ada verifikasi email / reset password | Pengguna tidak bisa memulihkan akun sendiri | Alur reset password dan verifikasi SSO |
+| Jika `JWT_SECRET_KEY` bocor, token bisa dipalsukan | Seluruh akses terbuka | Simpan sebagai secret, rotasi berkala |

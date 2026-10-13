@@ -14,5 +14,6 @@
 Prinsip utama: data dari API tidak disimpan ke Zustand. Zustand hanya menangani Client UI State, sedangkan TanStack Query menangani Server State.
 
 ## Catatan tambahan
-- Identitas pengguna yang sedang login (cookie sesi + akun di `localStorage`) dibaca lewat `lib/session.ts` dan `lib/currentStudent.ts`. Itu data sesi browser, bukan server state.
-- Data akademik yang ditampilkan ke Mahasiswa dan Orang Tua tetap diambil dari API lewat TanStack Query (`useCurrentStudent`, `useLinkedStudent`), sehingga perubahan oleh Dosen PA ikut terlihat.
+- Identitas pengguna yang sedang login adalah data sesi, diambil lewat `GET /api/auth/me` (TanStack Query, key `["session"]`). Token disimpan di cookie HttpOnly sehingga tidak ada di state client.
+- Data akademik untuk Mahasiswa dan Orang Tua tetap server state (TanStack Query: `useCurrentStudent`, `useLinkedStudent`) dan sudah disaring server per pengguna.
+- Daftar akun di Manajemen Pengguna juga server state (`["users"]`).

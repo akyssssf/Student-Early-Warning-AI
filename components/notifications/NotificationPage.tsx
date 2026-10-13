@@ -1,18 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Bell, CheckCircle2, ShieldAlert } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { useRisksQuery } from "@/hooks/useData";
-import { COOKIE, readCookie } from "@/lib/session";
 
-export default function NotificationPage({ studentOnly = false }: { studentOnly?: boolean }) {
+export default function NotificationPage() {
   const { data: risks, isLoading, isError, refetch } = useRisksQuery();
-  const [selectedNim, setSelectedNim] = useState("");
-  // Cookie hanya ada di browser; dibaca setelah mount supaya HTML server dan client sama.
-  useEffect(() => setSelectedNim(readCookie(COOKIE.nim)), []);
-  const visible = (risks ?? []).filter((risk) => !studentOnly || String(risk.nim) === selectedNim);
+  // Server hanya mengirim data milik pengguna yang login (mahasiswa: dirinya sendiri; dosen: semua).
+  const visible = risks ?? [];
   const high = visible.filter((risk) => risk.category === "Tinggi");
 
   return <section>

@@ -8,7 +8,7 @@ Implementasi proyek mengikuti kebutuhan Meta-Framework pada brief proyek akhir:
 - **Streaming SSR + Suspense**: `/dashboard` memiliki `Suspense` boundary yang membungkus `DashboardServerSnapshot`. Snapshot diproses di server dan fallback dikirim lebih dahulu sebelum konten snapshot selesai.
 - **Loading UI**: tersedia `loading.tsx` pada semua dashboard (Dosen PA, Mahasiswa, Admin, Kaprodi, Orang Tua) dan halaman login.
 - **Error UI**: tersedia `error.tsx` pada semua dashboard dan halaman login.
-- **Middleware route guard**: `middleware.ts` membatasi route dashboard berdasarkan role dan menjaga `/api/*` (lihat [KEAMANAN.md](KEAMANAN.md)).
+- **Middleware route guard**: `middleware.ts` memverifikasi JWT (cookie HttpOnly), membatasi route dashboard berdasarkan role, dan menjaga `/api/*` (lihat [KEAMANAN.md](KEAMANAN.md)).
 - **Metadata API**: page-level `metadata` dipakai untuk title dan description di landing, login, register, dan semua halaman dashboard.
 
 ## Batas Client/Server

@@ -1,5 +1,17 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { ROLE_HOME } from "@/lib/roles";
+import { isRoleAllowed, isSameOrigin } from "@/lib/server/access";
+import {
+  ACCESS_COOKIE,
+  REFRESH_COOKIE,
+  backendUrl,
+  cookieOptions,
+  isHttps,
+  secondsUntilExpiry,
+  verifyAccessToken,
+  type Claims,
+} from "@/lib/server/auth";
 
 const roleRoutes = [
   ["/dashboard-admin", "admin"],
@@ -9,48 +21,76 @@ const roleRoutes = [
   ["/dashboard", "dosen"],
 ] as const;
 
-const destinations: Record<string, string> = {
-  admin: "/dashboard-admin",
-  dosen: "/dashboard",
-  kaprodi: "/dashboard-kaprodi",
-  mahasiswa: "/dashboard-mahasiswa",
-  orangtua: "/dashboard-orangtua",
-};
+/** Endpoint yang boleh dipanggil tanpa login. */
+const PUBLIC_API = new Set(["/api/auth/login", "/api/auth/register", "/api/auth/logout"]);
 
-/** Role yang boleh mengubah data (POST/PUT/DELETE) per endpoint. */
-const writeRoles: Record<string, readonly string[]> = {
-  "/api/students": ["dosen", "admin"],
-  "/api/interventions": ["dosen"],
-};
-
-function guardApi(request: NextRequest, path: string, token: string | undefined, role: string | undefined) {
-  // Satu-satunya endpoint publik: daftar nama untuk form login Orang Tua.
-  if (path === "/api/students/lookup") return NextResponse.next();
-
-  if (!token) return NextResponse.json({ message: "Silakan login terlebih dahulu." }, { status: 401 });
-
-  const allowed = writeRoles[path];
-  const isWrite = request.method !== "GET" && request.method !== "HEAD";
-  if (isWrite && allowed && !(role && allowed.includes(role))) {
-    return NextResponse.json({ message: "Role Anda tidak memiliki izin untuk aksi ini." }, { status: 403 });
+async function refreshAccessToken(refreshToken: string): Promise<string | null> {
+  try {
+    const response = await fetch(`${backendUrl()}/api/v1/auth/refresh`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${refreshToken}` },
+      signal: AbortSignal.timeout(5000),
+      cache: "no-store",
+    });
+    if (!response.ok) return null;
+    const body: unknown = await response.json();
+    return typeof body === "object" && body !== null && "access_token" in body ? String(body.access_token) : null;
+  } catch {
+    return null;
   }
-  return NextResponse.next();
 }
 
-export function middleware(request: NextRequest) {
-  const token = request.cookies.get("sew_session")?.value;
-  const role = request.cookies.get("sew_role")?.value;
+type Session = { claims: Claims; newAccessToken?: string };
+
+/** Sesi valid dari cookie access; kalau kedaluwarsa/hilang, coba perbarui lewat refresh token. */
+async function readSession(request: NextRequest): Promise<Session | null> {
+  const claims = await verifyAccessToken(request.cookies.get(ACCESS_COOKIE)?.value);
+  if (claims) return { claims };
+
+  const refresh = request.cookies.get(REFRESH_COOKIE)?.value;
+  if (!refresh) return null;
+  const newAccessToken = await refreshAccessToken(refresh);
+  const renewed = await verifyAccessToken(newAccessToken ?? undefined);
+  return renewed && newAccessToken ? { claims: renewed, newAccessToken } : null;
+}
+
+/** Teruskan request dengan cookie access yang sudah diperbarui, dan simpan cookie baru di browser. */
+function proceed(request: NextRequest, session: Session): NextResponse {
+  if (!session.newAccessToken) return NextResponse.next();
+  const headers = new Headers(request.headers);
+  const others = request.cookies.getAll().filter((cookie) => cookie.name !== ACCESS_COOKIE);
+  headers.set("cookie", [...others.map((cookie) => `${cookie.name}=${cookie.value}`), `${ACCESS_COOKIE}=${session.newAccessToken}`].join("; "));
+  const response = NextResponse.next({ request: { headers } });
+  response.cookies.set(ACCESS_COOKIE, session.newAccessToken, cookieOptions(secondsUntilExpiry(session.newAccessToken, 900), isHttps(request)));
+  return response;
+}
+
+function apiError(message: string, status: number): NextResponse {
+  return NextResponse.json({ message }, { status });
+}
+
+export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
-  if (path.startsWith("/api/")) return guardApi(request, path, token, role);
+  if (path.startsWith("/api/")) {
+    if (request.method !== "GET" && request.method !== "HEAD" && !isSameOrigin(request.headers.get("origin"), request.headers.get("host"))) {
+      return apiError("Permintaan lintas situs ditolak.", 403);
+    }
+    if (PUBLIC_API.has(path)) return NextResponse.next();
+
+    const session = await readSession(request);
+    if (!session) return apiError("Silakan login terlebih dahulu.", 401);
+    if (!isRoleAllowed(path, request.method, session.claims.role)) return apiError("Role Anda tidak memiliki izin untuk aksi ini.", 403);
+    return proceed(request, session);
+  }
 
   const match = roleRoutes.find(([prefix]) => path === prefix || path.startsWith(`${prefix}/`));
+  if (!match) return NextResponse.next();
 
-  if (match && !token) return NextResponse.redirect(new URL("/login", request.url));
-  if (match && role !== match[1]) {
-    return NextResponse.redirect(new URL(destinations[role ?? ""] ?? "/login", request.url));
-  }
-  return NextResponse.next();
+  const session = await readSession(request);
+  if (!session) return NextResponse.redirect(new URL("/login", request.url));
+  if (session.claims.role !== match[1]) return NextResponse.redirect(new URL(ROLE_HOME[session.claims.role], request.url));
+  return proceed(request, session);
 }
 
 export const config = {

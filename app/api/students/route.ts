@@ -1,8 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { ZodError } from "zod";
 import { studentSchema } from "@/lib/schemas";
 import { studentsDb } from "@/lib/mockDb";
 import { asStudentId } from "@/lib/types";
+import { scopeToClaims } from "@/lib/server/access";
+import { claimsFromRequest } from "@/lib/server/auth";
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -11,9 +13,11 @@ function invalidStudent(error: unknown) {
   return NextResponse.json({ message }, { status: 400 });
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const claims = await claimsFromRequest(request);
+  if (!claims) return NextResponse.json({ message: "Silakan login terlebih dahulu." }, { status: 401 });
   await wait(300);
-  return NextResponse.json(studentsDb);
+  return NextResponse.json(scopeToClaims(studentsDb, claims));
 }
 
 export async function POST(request: Request) {

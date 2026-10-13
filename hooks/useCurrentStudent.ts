@@ -1,47 +1,35 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
+import { useSessionQuery } from "@/hooks/useSession";
 import { useStudentsQuery } from "@/hooks/useData";
-import { buildCurrentStudent, resolveStudentAccount, type StudentAccount } from "@/lib/currentStudent";
-import { COOKIE, readCookie } from "@/lib/session";
+import { buildCurrentStudent } from "@/lib/currentStudent";
 
 /** Mahasiswa yang sedang login, dengan data akademik terbaru dari API. */
 export function useCurrentStudent() {
-  const [account, setAccount] = useState<StudentAccount | null | undefined>(undefined);
+  const session = useSessionQuery();
   const students = useStudentsQuery();
 
-  useEffect(() => {
-    setAccount(resolveStudentAccount());
-  }, []);
+  const user = session.data?.role === "mahasiswa" ? session.data : null;
 
-  const student = useMemo(() => {
-    if (!account) return null;
-    return buildCurrentStudent(account, students.data ?? []);
-  }, [account, students.data]);
+  const student = useMemo(
+    () => (user ? buildCurrentStudent({ name: user.name, email: user.email, nim: user.nim ?? undefined }, students.data ?? []) : null),
+    [user, students.data],
+  );
 
-  const isLoading = account === undefined || (account !== null && students.isLoading);
-  const isError = account === null || students.isError;
+  const isLoading = session.isLoading || (user !== null && students.isLoading);
+  const isError = session.isError || (!session.isLoading && user === null) || students.isError;
 
   return { student: isError ? null : student, isLoading, isError };
 }
 
-/** Mahasiswa yang dipantau akun Orang Tua (dipilih saat login). Tidak ada fallback ke mahasiswa lain. */
+/** Mahasiswa yang dipantau akun Orang Tua (ditentukan Admin di backend). Tidak ada fallback ke mahasiswa lain. */
 export function useLinkedStudent() {
-  const [nim, setNim] = useState<string | undefined>(undefined);
+  const session = useSessionQuery();
   const students = useStudentsQuery();
 
-  useEffect(() => {
-    setNim(readCookie(COOKIE.nim));
-  }, []);
+  const nim = session.data?.role === "orangtua" ? session.data.nim : null;
+  const student = useMemo(() => (nim ? (students.data ?? []).find((item) => String(item.nim) === nim) ?? null : null), [nim, students.data]);
 
-  const student = useMemo(
-    () => (nim ? (students.data ?? []).find((item) => String(item.nim) === nim) ?? null : null),
-    [nim, students.data],
-  );
-
-  return {
-    student,
-    isLoading: nim === undefined || students.isLoading,
-    isError: students.isError,
-  };
+  return { student, isLoading: session.isLoading || students.isLoading, isError: session.isError || students.isError };
 }

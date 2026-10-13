@@ -5,14 +5,9 @@ import Link from "next/link";
 import { Eye, EyeOff, Lock, Mail, UserRound, CheckCircle2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
-import { AuthError, registerUser } from "@/lib/auth";
+import { ApiRequestError, registerStudent } from "@/lib/authClient";
 
 const SSO_DOMAIN = "@student.uns.ac.id";
-
-const registerErrors: Record<string, string> = {
-  EMAIL_ALREADY_EXISTS: "Email sudah terdaftar. Silakan masuk.",
-  NIM_ALREADY_EXISTS: "NIM ini sudah dipakai akun lain.",
-};
 
 /**
  * Pendaftaran mandiri hanya untuk Mahasiswa. Akun Dosen PA, Kaprodi, Admin, dan
@@ -28,11 +23,12 @@ export default function RegisterForm() {
   const [show, setShow] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const redirectTimer = useRef<number | undefined>(undefined);
 
   useEffect(() => () => window.clearTimeout(redirectTimer.current), []);
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
     const normalized = email.trim().toLowerCase();
@@ -43,11 +39,12 @@ export default function RegisterForm() {
     if (password.length < 8) return setError("Password minimal 8 karakter.");
     if (password !== confirmation) return setError("Konfirmasi password belum sama.");
 
+    setSubmitting(true);
     try {
-      registerUser({ name: name.trim(), email: normalized, password, role: "mahasiswa", nim: trimmedNim });
+      await registerStudent({ name: name.trim(), email: normalized, password, nim: trimmedNim });
     } catch (e) {
-      const code = e instanceof AuthError ? e.code : "";
-      return setError(registerErrors[code] ?? "Pendaftaran gagal. Coba lagi.");
+      setSubmitting(false);
+      return setError(e instanceof ApiRequestError ? e.message : "Pendaftaran gagal. Coba lagi.");
     }
     setSuccess(true);
     redirectTimer.current = window.setTimeout(() => router.push(`/login?email=${encodeURIComponent(normalized)}`), 900);
@@ -57,7 +54,7 @@ export default function RegisterForm() {
     <form onSubmit={submit} className="mx-auto max-w-md">
       <div className="mb-7"><p className="text-sm font-extrabold text-blue-600">Buat akun</p><h2 className="mt-1 text-3xl font-black tracking-tight text-slate-950">Daftar akun SSO</h2><p className="mt-2 text-sm leading-6 text-slate-500">Pendaftaran mandiri khusus mahasiswa dengan email <b>{SSO_DOMAIN}</b>. Akun Dosen PA, Kaprodi, dan Admin dibuat oleh administrator.</p></div>
 
-      {success ? <div role="status" className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-800"><div className="flex items-center gap-2 font-bold"><CheckCircle2 size={19} /> Akun berhasil dibuat.</div><p className="mt-2 leading-6">Kamu akan diarahkan ke halaman login. Pada demo ini akun disimpan di browser ini saja; di production data diteruskan ke layanan SSO/backend.</p></div> : <>
+      {success ? <div role="status" className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-800"><div className="flex items-center gap-2 font-bold"><CheckCircle2 size={19} /> Akun berhasil dibuat.</div><p className="mt-2 leading-6">Kamu akan diarahkan ke halaman login. Akun tersimpan di database backend.</p></div> : <>
         <label htmlFor="register-name" className="mb-2 block text-sm font-bold text-slate-700">Nama lengkap</label>
         <div className="relative mb-4"><UserRound className="absolute left-3 top-3.5 text-slate-400" size={18} /><input id="register-name" value={name} onChange={(e) => setName(e.target.value)} className="w-full rounded-xl border border-slate-200 py-3.5 pl-10 pr-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10" placeholder="Nama lengkap" autoComplete="name" required /></div>
 
@@ -75,7 +72,7 @@ export default function RegisterForm() {
         <div className="relative mb-6"><Lock className="absolute left-3 top-3.5 text-slate-400" size={18} /><input id="register-confirm" type={show ? "text" : "password"} value={confirmation} onChange={(e) => setConfirmation(e.target.value)} className="w-full rounded-xl border border-slate-200 py-3.5 pl-10 pr-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10" minLength={8} autoComplete="new-password" required /></div>
 
         {error && <div role="alert" className="mb-4 rounded-xl border border-red-100 bg-red-50 p-3 text-sm font-medium text-red-700">{error}</div>}
-        <Button type="submit" size="lg" className="w-full">Daftar akun</Button>
+        <Button type="submit" size="lg" className="w-full" disabled={submitting}>{submitting ? "Memproses..." : "Daftar akun"}</Button>
       </>}
 
       <p className="mt-6 text-center text-sm text-slate-500">Sudah punya akun? <Link href="/login" className="font-bold text-blue-600 hover:underline">Masuk</Link></p>

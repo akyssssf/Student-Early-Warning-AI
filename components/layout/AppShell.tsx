@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Bell, GraduationCap, LogOut, Menu, Moon, Sun, X, type LucideIcon } from "lucide-react";
 import { useUIStore } from "@/store/useUIStore";
-import { clearSession } from "@/lib/session";
+import { useLogout, useSessionQuery } from "@/hooks/useSession";
 
 export type ShellNavItem = { href: string; label: string; icon: LucideIcon; key?: string };
 
@@ -26,13 +26,19 @@ export default function AppShell({ config, children }: Readonly<{ config: ShellC
   const router = useRouter();
   const { sidebarOpen, setSidebarOpen, setActiveTab, theme, toggleTheme } = useUIStore();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const session = useSessionQuery();
+  const logoutMutation = useLogout();
+
+  // Sesi berakhir atau akun dinonaktifkan: kembali ke login.
+  useEffect(() => {
+    if (!session.isLoading && session.data === null) router.replace("/login");
+  }, [session.isLoading, session.data, router]);
 
   // Tutup drawer mobile setiap pindah halaman.
   useEffect(() => setMobileOpen(false), [pathname]);
 
   function logout() {
-    clearSession();
-    router.push("/login");
+    logoutMutation.mutate(undefined, { onSettled: () => router.replace("/login") });
   }
 
   function toggleSidebar() {
@@ -62,6 +68,7 @@ export default function AppShell({ config, children }: Readonly<{ config: ShellC
       <div className="mt-8 rounded-2xl bg-blue-50 p-4">
         <p className="text-xs font-bold uppercase text-blue-700">Role</p>
         <p className="mt-1 font-semibold text-slate-800">{config.roleLabel}</p>
+        {session.data && <p className="mt-1 truncate text-xs font-semibold text-slate-600" title={session.data.email}>{session.data.name}</p>}
         <p className="mt-1 text-xs text-slate-500">{config.description}</p>
       </div>
     </>

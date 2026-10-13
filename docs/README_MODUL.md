@@ -36,7 +36,7 @@
 - [x] Streaming SSR dengan Suspense
 - [x] Server-side dashboard snapshot
 - [x] Nested dashboard layout
-- [x] Middleware (halaman dan API)
+- [x] Middleware (verifikasi JWT, halaman dan API)
 - [x] Metadata API
 - [x] Skeleton loading
 

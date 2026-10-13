@@ -37,8 +37,8 @@ with app.app_context():
         ("alya", "Alya Putri", "2024001", 2024, 3.72),
         ("bagas", "Bagas Pratama", "2024002", 2024, 2.30),
         ("citra", "Citra Lestari", "2024003", 2024, 1.30),
-        ("dimas", "Dimas Ramadhan", "2024004", 2023, 2.86),
-        ("eka", "Eka Sari", "2024005", 2023, 2.50),
+        ("dimas", "Dimas Ramadhan", "2024004", 2024, 2.86),
+        ("eka", "Eka Sari", "2024005", 2024, 2.50),
     ]
     for username, nama, nim, angkatan, ipk in mahasiswa:
         u, new = add_user(username, f"{username}@student.uns.ac.id", "mahasiswa")
