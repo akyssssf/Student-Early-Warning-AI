@@ -10,7 +10,7 @@
 | Code splitting | `manualChunks.vendor` + `manualChunks.icons` | `vite.config.ts` |
 | Esbuild minification | `minify: "esbuild"` | `vite.config.ts` |
 | HMR | Interactive counter + documented measurement procedure | `src/App.tsx`, `docs/BENCHMARK.md` |
-| CI/CD quality gate | GitHub Actions: typecheck → Biome → build | `.github/workflows/quality.yml` |
+| CI/CD quality gate | GitHub Actions: typecheck → Biome → build | `.github/workflows/quality.yml` (root repo, job `vite`) |
 | SonarQube | `sonar-project.properties` | Static analysis configuration |
 | Benchmark PDF | Generated separately in project root | `Modul-8-Migrasi-Benchmark.pdf` |
 
