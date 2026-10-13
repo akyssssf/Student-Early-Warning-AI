@@ -1,6 +1,7 @@
 """Modul users (Admin): kelola akun & penugasan Dosen PA. FR-12."""
 import logging
 from flask import jsonify, request
+from flask_jwt_extended import get_jwt_identity
 
 from . import users_bp
 from ..extensions import db
@@ -18,6 +19,11 @@ def _get_user(id_user):
     if not user:
         raise ApiError("TIDAK_DITEMUKAN", "Pengguna tidak ditemukan.", 404)
     return user
+
+
+def _forbid_self_deactivation(id_user):
+    if int(get_jwt_identity()) == id_user:
+        raise ApiError("TIDAK_BISA_NONAKTIFKAN_DIRI", "Anda tidak dapat menonaktifkan akun Anda sendiri.", 400)
 
 
 @users_bp.get("")
@@ -43,6 +49,8 @@ def create_user():
 def update_user(id_user):
     user = _get_user(id_user)
     d = parse(UserUpdateIn, request.get_json(silent=True))
+    if d.is_active is False:
+        _forbid_self_deactivation(id_user)
     if d.email and d.email != user.email:
         if user.role != "orangtua" and not d.email.endswith(SSO_DOMAIN):
             raise ApiError("VALIDASI_GAGAL", f"Email harus menggunakan format nama{SSO_DOMAIN}.", 422)
@@ -66,6 +74,7 @@ def update_user(id_user):
 @roles_required("admin")
 def deactivate_user(id_user):
     user = _get_user(id_user)  # DELETE = nonaktifkan, bukan hapus
+    _forbid_self_deactivation(id_user)
     user.is_active = False
     db.session.commit()
     log.info("admin menonaktifkan akun id_user=%s", id_user)

@@ -8,7 +8,7 @@ from ..extensions import db, limiter
 from ..errors import ApiError
 from ..models import User
 from ..schemas import LoginIn, RegisterIn, parse
-from ..security import check_password
+from ..security import burn_password_check, check_password, current_user
 from ..services import create_user_with_profile
 
 log = logging.getLogger("sew.auth")  # tidak mencatat password/token (NFR-09)
@@ -26,6 +26,8 @@ def login():
         (User.username == data.username) | (User.email == data.username)
     ).first()
 
+    if not user:
+        burn_password_check(data.password)
     if not user or not user.is_active or not check_password(data.password, user.password_hash):
         log.warning("login gagal")
         raise ApiError("KREDENSIAL_SALAH", "Username/email atau password salah.", 401)
@@ -40,7 +42,15 @@ def login():
     ), 200
 
 
+@auth_bp.get("/me")
+@jwt_required()
+def me():
+    """Profil akun yang sedang login (dipakai frontend untuk memulihkan sesi)."""
+    return jsonify(current_user().to_dict()), 200
+
+
 @auth_bp.post("/refresh")
+@limiter.limit(lambda: current_app.config["REFRESH_RATE_LIMIT"])
 @jwt_required(refresh=True)
 def refresh():
     user = db.session.get(User, int(get_jwt_identity()))
@@ -50,6 +60,7 @@ def refresh():
 
 
 @auth_bp.post("/register")
+@limiter.limit(lambda: current_app.config["REGISTER_RATE_LIMIT"])
 def register():
     """Tambahan di luar dokumen: pendaftaran mandiri KHUSUS mahasiswa (matikan: ALLOW_SELF_REGISTER=false)."""
     if not current_app.config["ALLOW_SELF_REGISTER"]:

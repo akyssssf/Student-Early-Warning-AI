@@ -99,8 +99,8 @@ class RegisterIn(BaseModel):
     @classmethod
     def _nim(cls, v):
         v = v.strip()
-        if not v.isalnum() or len(v) < 6:
-            raise ValueError("NIM wajib diisi, minimal 6 digit angka.")
+        if not v.isdigit() or len(v) < 6:
+            raise ValueError("NIM wajib diisi, hanya angka, minimal 6 digit.")
         return v
 
     @field_validator("angkatan")
@@ -128,8 +128,8 @@ class UserCreateIn(RegisterIn):
         if v is None:
             return v
         v = v.strip()
-        if not v.isalnum() or len(v) < 6:
-            raise ValueError("NIM minimal 6 karakter alfanumerik.")
+        if not v.isdigit() or len(v) < 6:
+            raise ValueError("NIM hanya boleh angka, minimal 6 digit.")
         return v
 
     @model_validator(mode="after")

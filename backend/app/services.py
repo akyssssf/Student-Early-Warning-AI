@@ -9,11 +9,19 @@ from .security import hash_password
 
 def create_user_with_profile(*, role, name, email, password, username=None, nim=None,
                              nidn=None, prodi=None, angkatan=None):
-    username = (username or email.split("@")[0]).strip().lower()
     if User.query.filter_by(email=email).first():
         raise ApiError("EMAIL_SUDAH_ADA", "Email sudah terdaftar. Silakan masuk.", 409)
-    if User.query.filter_by(username=username).first():
-        raise ApiError("USERNAME_SUDAH_ADA", "Username sudah dipakai.", 409)
+    if username:
+        username = username.strip().lower()
+        if User.query.filter_by(username=username).first():
+            raise ApiError("USERNAME_SUDAH_ADA", "Username sudah dipakai.", 409)
+    else:
+        # Username otomatis dari email; kalau bentrok (mis. budi@student... dan budi@example.com) beri nomor.
+        base = email.split("@")[0].strip().lower()[:45]
+        username, n = base, 1
+        while User.query.filter_by(username=username).first():
+            n += 1
+            username = f"{base}{n}"
     if role == "mahasiswa" and Mahasiswa.query.filter_by(nim=nim).first():
         raise ApiError("NIM_SUDAH_ADA", "NIM sudah terdaftar.", 409)
     if role == "orangtua" and not Mahasiswa.query.filter_by(nim=nim).first():

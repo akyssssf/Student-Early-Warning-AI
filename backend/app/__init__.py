@@ -2,7 +2,7 @@ import logging
 from flask import Flask, jsonify
 from flask_cors import CORS
 
-from .config import Config
+from .config import Config, validate_config
 from .extensions import db, migrate, jwt, limiter
 from .errors import register_error_handlers
 
@@ -14,6 +14,7 @@ def create_app(config_overrides=None):
     app.config.from_object(Config)
     if config_overrides:
         app.config.update(config_overrides)
+    validate_config(app.config)
 
     CORS(app, origins=app.config["CORS_ORIGINS"])
     db.init_app(app)

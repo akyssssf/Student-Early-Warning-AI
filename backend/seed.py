@@ -5,7 +5,10 @@ from app.extensions import db
 from app.models import User, DosenPA, Mahasiswa, OrangTua
 from app.security import hash_password
 
-PASSWORD = "123456"
+import os
+
+# Password akun demo. Untuk lingkungan non-lokal WAJIB diganti lewat SEED_PASSWORD.
+PASSWORD = os.getenv("SEED_PASSWORD", "123456")
 PRODI = "D3 Teknik Informatika"
 app = create_app()
 
@@ -48,4 +51,6 @@ with app.app_context():
     if new:
         db.session.add(OrangTua(id_user=u.id_user, nim="2024001", nama="Orang Tua Mahasiswa"))
     db.session.commit()
-    print(f"Seed selesai. Total akun: {User.query.count()} (password demo: {PASSWORD})")
+    print(f"Seed selesai. Total akun: {User.query.count()}")
+    if PASSWORD == "123456":
+        print("PERINGATAN: password demo default (123456). Jangan dipakai di server yang bisa diakses orang lain; set SEED_PASSWORD.")
