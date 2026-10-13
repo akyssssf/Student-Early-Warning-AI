@@ -27,7 +27,7 @@ npm run build
 - `src/App.tsx` — dashboard benchmarking + HMR/state demo.
 - `../.github/workflows/quality.yml` — CI quality gate (harus di root repo agar dijalankan GitHub Actions).
 - `sonar-project.properties` — konfigurasi sumber SonarQube.
-- `docs/BENCHMARK.md` — prosedur dan tabel pengukuran.
+- `docs/BENCHMARK.md` — hasil pengukuran, batasan, dan cara mengulang (`node scripts/benchmark.mjs` dari root repo).
 - `docs/MIGRATION-MATRIX.md` — matriks pemenuhan requirement.
 
 ## Catatan versi
