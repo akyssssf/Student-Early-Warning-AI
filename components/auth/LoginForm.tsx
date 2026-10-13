@@ -5,17 +5,18 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Lock, Mail, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { DEFAULT_USERS, loginUser } from "@/lib/auth";
-import { useStudentsQuery } from "@/hooks/useData";
+import { DEFAULT_USERS, findUser, getUserByEmail, isUserActive } from "@/lib/auth";
+import { useStudentOptionsQuery } from "@/hooks/useData";
+import { setSession } from "@/lib/session";
 
 const SSO_DOMAIN = "@student.uns.ac.id";
 type Role = "admin" | "dosen" | "kaprodi" | "mahasiswa" | "orangtua";
 
 const roleOptions: Array<{ value: Role; label: string; description: string; requiresSso: boolean }> = [
   { value: "mahasiswa", label: "Mahasiswa", description: "Masuk menggunakan akun SSO mahasiswa", requiresSso: true },
-  { value: "dosen", label: "Dosen PA / Staff", description: "Akun internal UNS", requiresSso: true },
+  { value: "dosen", label: "Dosen PA", description: "Akun internal UNS", requiresSso: true },
   { value: "kaprodi", label: "Kaprodi", description: "Akun internal UNS", requiresSso: true },
-  { value: "admin", label: "Admin / Staff", description: "Akun pengelola sistem", requiresSso: true },
+  { value: "admin", label: "Admin", description: "Akun pengelola sistem", requiresSso: true },
   { value: "orangtua", label: "Orang Tua", description: "Akun pendamping mahasiswa", requiresSso: false },
 ];
 
@@ -39,16 +40,16 @@ function isLoginRole(value: string): value is Role {
   return roleOptions.some((option) => option.value === value);
 }
 
-// Akun dump/demo dari lib/auth.ts yang punya dashboard (role "staff" tidak punya dashboard).
 const demoAccounts = DEFAULT_USERS.filter((user) => isLoginRole(user.role));
 
-export default function LoginForm() {
+export default function LoginForm({ initialEmail = "" }: { initialEmail?: string }) {
   const router = useRouter();
-  const { data: students = [], isLoading: studentsLoading } = useStudentsQuery();
+  const { data: students = [], isLoading: studentsLoading } = useStudentOptionsQuery();
   const [role, setRole] = useState<Role>("mahasiswa");
   const [studentNim, setStudentNim] = useState("");
-  const [email, setEmail] = useState(demoEmails.mahasiswa);
-  const [password, setPassword] = useState("123456");
+  const [email, setEmail] = useState(initialEmail || demoEmails.mahasiswa);
+  // Setelah mendaftar (initialEmail terisi), password sengaja dikosongkan.
+  const [password, setPassword] = useState(initialEmail ? "" : "123456");
   const [show, setShow] = useState(false);
   const [error, setError] = useState("");
   const [demoEmail, setDemoEmail] = useState("");
@@ -56,6 +57,13 @@ export default function LoginForm() {
   useEffect(() => {
     if (students.length > 0 && !studentNim) setStudentNim(String(students[0]?.nim ?? ""));
   }, [students, studentNim]);
+
+  // Datang dari halaman daftar: pilih jenis akun sesuai akun yang baru dibuat.
+  useEffect(() => {
+    if (!initialEmail) return;
+    const account = getUserByEmail(initialEmail);
+    if (account && isLoginRole(account.role)) setRole(account.role);
+  }, [initialEmail]);
 
   const selectedRole = useMemo(() => roleOptions.find((item) => item.value === role) ?? roleOptions[0], [role]);
 
@@ -84,29 +92,21 @@ export default function LoginForm() {
     if (selectedRole?.requiresSso && !normalizedEmail.endsWith(SSO_DOMAIN)) return setError(`Gunakan email SSO dengan format nama@${SSO_DOMAIN.slice(1)}.`);
     if (role === "orangtua" && !studentNim) return setError("Silakan pilih mahasiswa terlebih dahulu.");
 
-    const user = loginUser(normalizedEmail, password);
+    const user = findUser(normalizedEmail, password);
     if (!user) return setError("Email atau password salah. Belum punya akun? Silakan daftar terlebih dahulu.");
+    if (!isUserActive(user)) return setError("Akun ini dinonaktifkan. Hubungi administrator.");
     if (user.role !== role) {
       const registeredAs = roleOptions.find((item) => item.value === user.role)?.label ?? user.role;
       return setError(`Akun ini terdaftar sebagai ${registeredAs}. Pilih jenis akun yang sesuai.`);
     }
 
-    document.cookie = "sew_session=demo-session; path=/; max-age=86400";
-    document.cookie = `sew_role=${role}; path=/; max-age=86400`;
-    document.cookie = `sew_email=${encodeURIComponent(user.email)}; path=/; max-age=86400`;
-    // Cookie NIM WAJIB ditulis ulang setiap login. Kalau akun yang login tidak
-    // punya NIM, cookie lama harus dihapus — kalau tidak, sesi sebelumnya
-    // (mis. Alya 2024001) akan terbawa ke akun baru.
-    const nim = role === "orangtua" ? studentNim : (user.nim ?? "");
-    document.cookie = nim
-      ? `sew_nim=${nim}; path=/; max-age=86400`
-      : "sew_nim=; Max-Age=0; path=/";
+    setSession({ role, email: user.email, nim: role === "orangtua" ? studentNim : user.nim });
     router.push(destinations[role]);
   }
 
   return (
     <form onSubmit={submit} className="mx-auto max-w-md">
-      <div className="mb-7"><p className="text-sm font-extrabold text-blue-600">Selamat datang kembali</p><h2 className="mt-1 text-3xl font-black tracking-tight text-slate-950">Masuk ke sistem</h2><p className="mt-2 text-sm leading-6 text-slate-500">Pilih jenis akun dari daftar di bawah. Pilihan tidak menggunakan tombol berjejer.</p></div>
+      <div className="mb-7"><p className="text-sm font-extrabold text-blue-600">Selamat datang kembali</p><h2 className="mt-1 text-3xl font-black tracking-tight text-slate-950">Masuk ke sistem</h2><p className="mt-2 text-sm leading-6 text-slate-500">Pilih jenis akun dari daftar di bawah, lalu masuk dengan email dan password.</p></div>
 
       <label htmlFor="demo-account" className="mb-2 block text-sm font-bold text-slate-700">Akun demo <span className="font-medium text-slate-400">(opsional)</span></label>
       <select id="demo-account" value={demoEmail} onChange={(e) => pickDemoAccount(e.target.value)} className="mb-5 w-full appearance-none rounded-xl border border-dashed border-blue-300 bg-blue-50/50 px-4 py-3.5 text-sm font-semibold text-slate-800 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10">

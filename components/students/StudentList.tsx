@@ -6,6 +6,7 @@ import { useCreateStudent, useDeleteStudent, useStudentsQuery, useUpdateStudent 
 import { studentSchema, type StudentInput } from "@/lib/schemas";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { calculateRisk } from "@/lib/risk";
 import type { Student } from "@/lib/types";
 
 const emptyForm: StudentInput = { nim: "", name: "", prodi: "D3 Teknik Informatika", angkatan: 2026, attendance: 80, gpa: 3, lms: 80, assignments: 80 };
@@ -55,8 +56,7 @@ export default function StudentList() {
   const filtered = useMemo(() => (data ?? []).filter((s) => {
     const q = keyword.toLowerCase();
     const matchesSearch = s.name.toLowerCase().includes(q) || s.nim.toLowerCase().includes(q);
-    const score = Math.round((100 - s.attendance) * .3 + (100 - (s.gpa / 4) * 100) * .3 + (100 - s.lms) * .2 + (100 - s.assignments) * .2);
-    const category = score >= 70 ? "Tinggi" : score >= 40 ? "Sedang" : "Rendah";
+    const { category } = calculateRisk(s);
     return matchesSearch && (filter === "Semua" || category === filter);
   }), [data, keyword, filter]);
 

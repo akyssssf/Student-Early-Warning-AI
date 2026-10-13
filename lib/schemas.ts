@@ -25,5 +25,10 @@ export const interventionSchema = z.object({
   note: z.string().min(10, "Catatan minimal 10 karakter"),
 });
 
+export const interventionRecordSchema = interventionSchema.extend({
+  id: z.number().int(),
+  date: z.string(),
+});
+
 export type StudentInput = z.infer<typeof studentSchema>;
 export type InterventionInput = z.infer<typeof interventionSchema>;

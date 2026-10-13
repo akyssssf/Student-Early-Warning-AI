@@ -1,29 +1,47 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import {
-  resolveCurrentStudent,
-  type CurrentStudent,
-} from "@/lib/currentStudent";
+import { useEffect, useMemo, useState } from "react";
+import { useStudentsQuery } from "@/hooks/useData";
+import { buildCurrentStudent, resolveStudentAccount, type StudentAccount } from "@/lib/currentStudent";
+import { COOKIE, readCookie } from "@/lib/session";
 
-/**
- * Sebelumnya hook ini fetch ke /api/student/current yang mencari data
- * berdasarkan cookie `sew_nim`. Cookie itu tidak pernah dihapus saat logout,
- * jadi akun baru (mis. Tata) tetap menampilkan data Alya Putri.
- *
- * Sekarang identitas diambil dari akun yang benar-benar login.
- */
+/** Mahasiswa yang sedang login, dengan data akademik terbaru dari API. */
 export function useCurrentStudent() {
-  const [student, setStudent] = useState<CurrentStudent | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isError, setIsError] = useState(false);
+  const [account, setAccount] = useState<StudentAccount | null | undefined>(undefined);
+  const students = useStudentsQuery();
 
   useEffect(() => {
-    const result = resolveCurrentStudent();
-    setStudent(result);
-    setIsError(result === null);
-    setIsLoading(false);
+    setAccount(resolveStudentAccount());
   }, []);
 
-  return { student, isLoading, isError };
+  const student = useMemo(() => {
+    if (!account) return null;
+    return buildCurrentStudent(account, students.data ?? []);
+  }, [account, students.data]);
+
+  const isLoading = account === undefined || (account !== null && students.isLoading);
+  const isError = account === null || students.isError;
+
+  return { student: isError ? null : student, isLoading, isError };
+}
+
+/** Mahasiswa yang dipantau akun Orang Tua (dipilih saat login). Tidak ada fallback ke mahasiswa lain. */
+export function useLinkedStudent() {
+  const [nim, setNim] = useState<string | undefined>(undefined);
+  const students = useStudentsQuery();
+
+  useEffect(() => {
+    setNim(readCookie(COOKIE.nim));
+  }, []);
+
+  const student = useMemo(
+    () => (nim ? (students.data ?? []).find((item) => String(item.nim) === nim) ?? null : null),
+    [nim, students.data],
+  );
+
+  return {
+    student,
+    isLoading: nim === undefined || students.isLoading,
+    isError: students.isError,
+  };
 }
