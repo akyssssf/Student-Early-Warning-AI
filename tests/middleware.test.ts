@@ -60,7 +60,7 @@ describe("halaman", () => {
 
 describe("API", () => {
   it("endpoint publik boleh diakses tanpa sesi", async () => {
-    for (const path of ["/api/auth/login", "/api/auth/register", "/api/auth/forgot-password", "/api/auth/reset-password", "/api/auth/verify-email", "/api/auth/resend-verification"]) {
+    for (const path of ["/api/health", "/api/auth/login", "/api/auth/register", "/api/auth/forgot-password", "/api/auth/reset-password", "/api/auth/verify-email", "/api/auth/resend-verification"]) {
       expect((await middleware(request(path, { method: "POST" }))).status).toBe(200);
     }
   });

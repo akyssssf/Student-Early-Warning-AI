@@ -25,8 +25,8 @@
 ## Batasan yang tersisa
 | Batasan | Dampak | Perbaikan |
 |---|---|---|
-| Rate limit disimpan di memori per proses | Tidak berlaku lintas instance | Redis lewat `RATELIMIT_STORAGE_URI` |
-| `X-Forwarded-For` dipercaya bila `TRUSTED_PROXIES` diisi; Next meneruskannya apa adanya | Bila frontend terbuka langsung ke internet, penyerang bisa memalsukan IP untuk menghindari rate limit per IP (penguncian per akun tetap berlaku) | Pasang reverse proxy tepercaya (Nginx/Caddy) yang menimpa header itu |
+| Rate limit di Docker demo (`docker-compose.yml`) masih memori per proses | Tidak berlaku lintas instance | Compose production sudah memakai Redis |
+| `X-Forwarded-For` dipercaya bila `TRUSTED_PROXIES` diisi | Bila frontend terbuka langsung ke internet (compose demo), IP bisa dipalsukan untuk menghindari rate limit per IP (penguncian per akun tetap berlaku) | Compose production menaruh Caddy di depan (menimpa header itu; sudah diuji) |
 | Penguncian per akun bisa dipakai untuk mengunci akun orang lain (sengaja menebak password salah) | Korban terkunci 15 menit | CAPTCHA, atau kunci bertahap berdasar IP + akun |
 | Validasi sesi di route data di-cache 5 detik | Pencabutan/penonaktifan berlaku paling lambat 5 detik kemudian | Turunkan TTL (lebih banyak beban backend) |
 | CSP masih mengizinkan skrip/gaya inline | Mengurangi perlindungan XSS | Nonce per request lewat middleware |

@@ -36,6 +36,9 @@ def create_app(config_overrides=None):
     from .auth import auth_bp
     from .users import users_bp
 
+    from .cli import register_cli
+
+    register_cli(app)
     app.register_blueprint(auth_bp, url_prefix="/api/v1/auth")
     app.register_blueprint(users_bp, url_prefix="/api/v1/users")
 

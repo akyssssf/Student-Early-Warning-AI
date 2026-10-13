@@ -23,6 +23,7 @@ const roleRoutes = [
 
 /** Endpoint yang boleh dipanggil tanpa login. */
 const PUBLIC_API = new Set([
+  "/api/health",
   "/api/auth/login",
   "/api/auth/register",
   "/api/auth/logout",

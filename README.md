@@ -109,6 +109,9 @@ docker compose exec api python seed.py     # akun demo, sekali saja
 Buka http://localhost:3000. Email verifikasi/reset tampil di http://localhost:8025. Cadangkan dan pulihkan database dengan `./scripts/backup-db.sh` dan `./scripts/restore-db.sh <file>`.
 Mailpit hanya untuk demo (email tidak benar-benar terkirim). Untuk email sungguhan isi `MAIL_*` dengan SMTP asli.
 
+## Deploy ke internet
+Lihat [`docs/DEPLOY.md`](docs/DEPLOY.md): `docker-compose.prod.yml` (Caddy HTTPS otomatis, Redis, MySQL, tanpa akun demo), langkah, backup terjadwal, dan checklist. Ingin berkontribusi? Cukup fork dan buka pull request, lihat [`CONTRIBUTING.md`](CONTRIBUTING.md).
+
 ## Cara kerja autentikasi
 Browser tidak pernah memegang token yang bisa dibaca JavaScript. Login lewat route Next.js (`/api/auth/login`) yang meneruskan ke backend Flask, lalu menyimpan token di **cookie HttpOnly**. Middleware memverifikasi tanda tangan JWT di setiap halaman dan `/api/*`, memperbarui access token otomatis lewat refresh token, dan data API disaring per pengguna (mahasiswa/orang tua hanya melihat NIM miliknya). Logout mencabut kedua token di backend, dan route data memeriksa ke backend bahwa sesi belum dicabut atau akunnya belum dinonaktifkan. Rinciannya di [`docs/KEAMANAN.md`](docs/KEAMANAN.md).
 
